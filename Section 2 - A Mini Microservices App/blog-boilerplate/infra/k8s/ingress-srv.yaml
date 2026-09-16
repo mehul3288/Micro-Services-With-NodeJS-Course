@@ -1,0 +1,62 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-srv
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  rules:
+    # -----------------------------------------------------------------------------
+    # WHY WE USE 'host':
+    # 1. Virtual Hosting / Multi-Domain Support:
+    #    A single Ingress Controller (and single Load Balancer IP) can host multiple
+    #    different websites/apps (e.g., 'posts.com', 'admin.com', 'api.posts.com').
+    #    The 'host' field inspects the incoming HTTP request's 'Host' header to direct
+    #    traffic to the right set of microservices.
+    # 2. Production Simulation:
+    #    In real production, your frontend and users access services via real domain
+    #    names rather than IP addresses or localhost ports.
+    #
+    # WHY WE EDIT THE LOCAL OS 'hosts' FILE (C:\Windows\System32\drivers\etc\hosts):
+    # - Since 'posts.com' is a custom/fake domain that we don't own on the public internet,
+    #   public DNS servers don't know where to send it.
+    # - Adding '127.0.0.1 posts.com' to the local hosts file tricks your browser/OS into
+    #   routing requests to 'http://posts.com' directly to your local Kubernetes cluster.
+    # -----------------------------------------------------------------------------
+    - host: posts.com
+      http:
+        paths:
+          - path: /posts/create
+            pathType: Prefix
+            backend:
+              service:
+                name: posts-clusterip-srv
+                port:
+                  number: 4000
+          - path: /posts
+            pathType: Prefix
+            backend:
+              service:
+                name: query-srv
+                port:
+                  number: 4002
+          - path: /posts/?(.*)/comments
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: comments-srv
+                port:
+                  number: 4001
+          # this is for react app
+          - path: /?(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: client-srv
+                port:
+                  number: 3000
+            
+          
+            
+          

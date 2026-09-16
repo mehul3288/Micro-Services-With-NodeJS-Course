@@ -1,0 +1,12 @@
+How to set an alias for kubectl so you don't have to write whole word again and again below are the steps:
+Create a macros file (e.g., C:\Users\<YourUsername>\aliases.cmd):
+
+@echo off
+doskey k=kubectl $*
+doskey kgp=kubectl get pods $*
+doskey kga=kubectl get all $*
+doskey ll=dir /a
+
+Register the file to auto-run on CMD startup via Registry: Open Command Prompt as Administrator and run:
+
+reg add "HKCU\Software\Microsoft\Command Processor" /v AutoRun /t REG_SZ /d "%USERPROFILE%\aliases.cmd" /f

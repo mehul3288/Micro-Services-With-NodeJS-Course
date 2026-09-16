@@ -1,0 +1,60 @@
+# -----------------------------------------------------------------------------
+# Kubernetes Deployment Configuration
+# -----------------------------------------------------------------------------
+
+# apiVersion: Specifies the API group and version for Deployments.
+# Deployments belong to the 'apps' API group under version 'v1'.
+apiVersion: apps/v1
+
+# kind: Defines the resource type.
+# A Deployment manages a set of identical Pods (ReplicaSet), handling scaling,
+# self-healing (restarting crashed pods), and zero-downtime rolling updates.
+kind: Deployment
+
+# metadata: Information to uniquely identify the Deployment itself.
+metadata:
+  # name: Unique name for this Deployment object.
+  name: posts-depl
+
+# spec: Defines the desired state of the Deployment.
+spec:
+  # replicas: Number of identical Pod instances to create and maintain.
+  replicas: 1
+
+  # selector: Tells the Deployment which Pods belong to it.
+  selector:
+    # matchLabels: Must match the labels defined under template.metadata.labels below.
+    # Note: Case-sensitive (camelCase: 'matchLabels').
+    matchLabels:
+      app: posts
+
+  # template: The blueprint/specification for creating new Pods managed by this Deployment.
+  template:
+    # metadata: Labels attached to every Pod created from this template.
+    metadata:
+      labels:
+        # app: posts -> Used by the selector above and Services to target these Pods.
+        app: posts
+
+    # spec: Pod specification (the actual containers running inside each Pod).
+    spec:
+      # containers: List of containers to run in each Pod.
+      containers:
+        # name: Name identifier for this container instance.
+        - name: posts
+          # image: The Docker image to pull and run (<username>/<repo>:<tag>).
+          image: mehul3288/posts:latest
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: posts-clusterip-srv
+spec:
+  selector:
+    app: posts
+  # type: ClusterIP it is by default if not specified
+  ports:
+    - name: posts
+      protocol: TCP
+      port: 4000
+      targetPort: 4000

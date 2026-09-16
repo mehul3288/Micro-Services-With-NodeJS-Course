@@ -1,0 +1,26 @@
+# -----------------------------------------------------------------------------
+# Kubernetes Pod Configuration
+# -----------------------------------------------------------------------------
+
+# apiVersion: Specifies the version of the Kubernetes API schema to use.
+# Note: The value depends on the 'kind'. Core objects (Pod, Service, ConfigMap)
+# use 'v1', while other objects use their group (e.g. Deployment uses 'apps/v1').
+apiVersion: v1
+
+# kind: Defines the type of Kubernetes resource to create.
+# A Pod is the smallest deployable unit in Kubernetes, wrapping one or more containers.
+kind: Pod
+
+# metadata: Information to uniquely identify and organize the resource.
+metadata:
+  # name: The unique identifier/name for this Pod in the cluster.
+  name: posts
+
+# spec: Defines the desired state and configuration of the Pod.
+spec:
+  # containers: A list/array of containers to run inside this Pod.
+  containers:
+    # name: Name identifier for this container instance inside the Pod.
+    - name: posts
+      # image: The Docker image to pull and execute (<username>/<repo>:<tag>).
+      image: mehul3288/posts:0.0.1
