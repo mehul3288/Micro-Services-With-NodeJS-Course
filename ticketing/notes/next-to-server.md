@@ -96,11 +96,12 @@ USER / BROWSER             NEXT.JS SERVER POD           INGRESS NGINX           
       │                           │                           │                            │
       │                           │ 2. LandingPage SSR runs   │                            │
       │                           │    buildClient() extracts │                            │
-      │                           │    Host & decoded Cookie  │                            │
+      │                           │    Host, Proto & Cookie   │                            │
       │                           │                           │                            │
       │                           │ 3. Internal HTTP GET      │                            │
       │                           │    /api/users/currentuser │                            │
       │                           │    Host: ticketing.dev    │                            │
+      │                           │    X-Forwarded-Proto:https│                            │
       │                           │    Cookie: session=...==  │                            │
       │                           │──────────────────────────►│                            │
       │                           │                           │ 4. Route by Host to auth   │
@@ -138,10 +139,10 @@ app.use(
 ```
 
 ### How `secure: true` works:
-1. `cookie-session` with `secure: true` only emits a `Set-Cookie` header if the incoming request is **secure (HTTPS)** (`req.secure === true`).
+1. `cookie-session` with `secure: true` only emits and decodes cookies if the connection is **secure (HTTPS)** (`req.secure === true`).
 2. When the browser makes a request directly to `https://ticketing.dev/api/users/signup`:
    - It hits Ingress via **HTTPS**.
-   - Ingress adds `X-Forwarded-Proto: https`.
+   - Ingress terminates TLS and adds `X-Forwarded-Proto: https`.
    - Express has `app.set("trust proxy", true)`, which instructs Express to trust the `X-Forwarded-Proto` header sent by Ingress.
    - Express sets `req.secure = true`.
    - `cookie-session` sees `req.secure = true` and **successfully attaches the `Set-Cookie` header** to the response.
@@ -235,6 +236,8 @@ export default async function buildClient() {
       baseURL:
         'http://ingress-nginx-controller.ingress-nginx.svc.cluster.local',
       headers: {
+        // Forward protocol so cookieSession(secure: true) knows the client is on HTTPS
+        'X-Forwarded-Proto': headersList.get('x-forwarded-proto') || 'https',
         // Forward domain for Ingress host routing rule
         Host: headersList.get('host') || 'ticketing.dev',
         // Forward decoded cookie for session authentication
@@ -249,3 +252,81 @@ export default async function buildClient() {
   }
 }
 ```
+
+---
+
+## 8. Why `X-Forwarded-Proto` Was Automatic in Author's App vs Next.js 15
+
+### In the Author's App (Pages Router `getInitialProps`):
+In `client-author/api/build-client.js`:
+```javascript
+return axios.create({
+  baseURL: 'http://ingress-nginx-controller.ingress-nginx.svc.cluster.local',
+  headers: req.headers, // Passes raw Node.js request headers in bulk
+});
+```
+- When the user visited `https://ticketing.dev`, Ingress terminated HTTPS and sent the request to Next.js with `x-forwarded-proto: 'https'` already inside `req.headers`.
+- Because the author passed the whole `req.headers` object in bulk, `x-forwarded-proto` was forwarded to Express automatically.
+
+### In Next.js 15 App Router:
+- There is no `req` object in Server Components (`LandingPage` / `RootLayout`). Next.js provides the Web `Headers` object via `await headers()`.
+- Because we pick individual headers manually (`Host`, `Cookie`), we must also explicitly include `'X-Forwarded-Proto': headersList.get('x-forwarded-proto') || 'https'` so Express's `cookie-session` knows the original connection was HTTPS.
+- This is completely secure because this internal call is made strictly inside the private Kubernetes cluster overlay network.
+
+---
+
+## 9. What Happens on a Fresh Browser (First-Ever Visit) Lifecycle
+
+Here is the exact step-by-step lifecycle when a user opens `https://ticketing.dev` on a **completely fresh browser** (with no cookies stored):
+
+```text
+1. Browser opens "https://ticketing.dev" (First-ever visit)
+   │
+   ▼
+2. Connects to Ingress NGINX over HTTPS (TLS Handshake on port 443)
+   │
+   ▼
+3. Ingress NGINX receives the HTTPS connection.
+   Because the connection came over HTTPS, Ingress ALWAYS automatically 
+   injects the header:
+   ┌──────────────────────────────────────────────┐
+   │ X-Forwarded-Proto: https                     │
+   │ Host: ticketing.dev                          │
+   │ Cookie: (empty / none)                       │
+   └──────────────────────────────────────────────┘
+   and forwards the request to the Next.js pod (client-srv).
+   │
+   ▼
+4. Inside Next.js (client-srv):
+   • LandingPage runs on the server and calls buildClient().
+   • await headers() reads the headers sent by Ingress.
+   • headersList.get('x-forwarded-proto') is ALREADY 'https'!
+   • headersList.get('cookie') is null (no cookies exist yet).
+   │
+   ▼
+5. buildClient() makes internal cluster call:
+   GET http://ingress-nginx-controller.../api/users/currentuser
+   Headers:
+   • Host: ticketing.dev
+   • X-Forwarded-Proto: https
+   • Cookie: undefined
+   │
+   ▼
+6. Auth Service (auth-srv) receives the request:
+   • cookieSession checks req.secure (it is TRUE because of X-Forwarded-Proto: https).
+   • But no cookie was sent (req.headers.cookie is empty).
+   • req.session is empty ({}).
+   • currentUser middleware sees no session.jwt and calls next().
+   • Returns: { currentUser: null }.
+   │
+   ▼
+7. Next.js receives { currentUser: null }:
+   • LandingPage renders: <h1>You are NOT signed in</h1>
+   • Header renders: [Sign Up] [Sign In]
+   • Sends full HTML to the browser.
+```
+
+### Summary:
+- `X-Forwarded-Proto: https` is **always present from the first visit** because Ingress injects it upon receiving the browser's HTTPS connection.
+- For a fresh browser with no cookie, `buildClient()` asking Auth cleanly returns `{ currentUser: null }`.
+- The `X-Forwarded-Proto` header is essential *after* login so that Express's `cookie-session` (`secure: true`) allows reading and decoding the cookie on server-side requests.
