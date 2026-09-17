@@ -63,14 +63,7 @@ const userSchema = new Schema<UserAttrs, UserModel>(
     }
 );
 
-// ============================================================================
-// 4. Custom Static Method: .build()
-// ============================================================================
-// ROLE: A factory function attached directly to the User Model.
-// WHY WE NEED IT:
-// By default, Mongoose's `new User({...})` constructor is loosely typed to allow internal
-// document hydration. By routing all creation through `User.build(attrs)`, TypeScript
-// strictly validates the arguments against the `UserAttrs` interface.
+
 
 userSchema.pre("save", async function () {
     // here this will be the user document object
@@ -80,6 +73,15 @@ userSchema.pre("save", async function () {
         this.set("password", hashed);
     }
 });
+
+// ============================================================================
+// 4. Custom Static Method: .build()
+// ============================================================================
+// ROLE: A factory function attached directly to the User Model.
+// WHY WE NEED IT:
+// By default, Mongoose's `new User({...})` constructor is loosely typed to allow internal
+// document hydration. By routing all creation through `User.build(attrs)`, TypeScript
+// strictly validates the arguments against the `UserAttrs` interface.
 
 userSchema.statics.build = (attrs: UserAttrs) => {
     return new User(attrs);
