@@ -1,7 +1,6 @@
 import { Request, Response, Router } from "express";
 import { body } from "express-validator";
-import { BadRequestError } from "../errors/bad-request-error";
-import { validateRequest } from "../middlewares/validate-request";
+import { BadRequestError, validateRequest } from "@mehul-mrtickets/common";
 import { User } from "../models/user";
 import { Password } from "../services/password";
 import jwt from "jsonwebtoken";

@@ -85,6 +85,11 @@ npm run build
 npm login
 npm publish --access public
 ```
+run this command 
+
+npm publish --access public --//registry.npmjs.org/:_authToken="YOUR_TOKEN_HERE"
+
+You will have to create access token on npm website and then paste it here
 
 - https://www.npmjs.com/package/@chticketing/common
 

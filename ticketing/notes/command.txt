@@ -1,0 +1,2 @@
+# Reusable NPM publish command flag:
+-- --//registry.npmjs.org/:_authToken="YOUR_TOKEN_HERE"
