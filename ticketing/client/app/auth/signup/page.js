@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import useRequest from '../../../hooks/use-request';
+import ErrorAlert from '../../../components/error-alert';
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -49,7 +50,8 @@ export default function SignUpPage() {
           placeholder="Password"
         />
       </div>
-      {errors}
+      {/* {errors} */}
+      <ErrorAlert errors={errors} />
       <button className="btn btn-primary">Sign Up</button>
     </form>
   );
