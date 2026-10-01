@@ -16,6 +16,7 @@ it("returns 404 if the order is not found", async () => {
 
 it("marks an order as cancelled", async () => {
     const ticket = Ticket.build({
+        id: new mongoose.Types.ObjectId().toHexString(),
         title: "Concert",
         price: 111
     })
@@ -42,6 +43,7 @@ it("marks an order as cancelled", async () => {
 
 it("emits an order cancelled event", async () => {
     const ticket = Ticket.build({
+        id: new mongoose.Types.ObjectId().toHexString(),
         title: "Concert",
         price: 111
     })

@@ -11,13 +11,21 @@ interface OrderAttrs {
     ticket: TicketDoc
 }
 
-interface OrderModel extends Model<OrderAttrs> {
-    build(attrs: OrderAttrs): HydratedDocument<OrderAttrs>;
+interface OrderDoc extends mongoose.Document {
+    userId: string,
+    status: OrderStatus,
+    expiresAt: Date,
+    ticket: TicketDoc,
+    version: number
+}
+
+interface OrderModel extends Model<OrderDoc> {
+    build(attrs: OrderAttrs): OrderDoc;
 }
 
 // Doc Type-> TicketAttrs
 // Ticketmodel inheriting all the model function along with build method we defined above
-const ticketSchema = new Schema<OrderAttrs, OrderModel>({
+const ticketSchema = new Schema<OrderDoc, OrderModel>({
     userId: {
         type: String,
         required: true
@@ -36,6 +44,8 @@ const ticketSchema = new Schema<OrderAttrs, OrderModel>({
         ref: "Ticket"
     }
 }, {
+    versionKey: "version",
+    optimisticConcurrency: true,
     toJSON: {
         transform(doc, ret: any) {
             ret.id = ret._id
@@ -48,6 +58,6 @@ ticketSchema.statics.build = (attrs: OrderAttrs) => {
     return new Order(attrs);
 }
 
-const Order = model<OrderAttrs, OrderModel>(`Order`, ticketSchema);
+const Order = model<OrderDoc, OrderModel>(`Order`, ticketSchema);
 
 export { Order };
