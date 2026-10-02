@@ -44,8 +44,8 @@ const ticketSchema = new Schema<OrderDoc, OrderModel>({
         ref: "Ticket"
     }
 }, {
-    versionKey: "version",
-    optimisticConcurrency: true,
+    // versionKey: "version",
+    // optimisticConcurrency: true,
     toJSON: {
         transform(doc, ret: any) {
             ret.id = ret._id
@@ -53,6 +53,16 @@ const ticketSchema = new Schema<OrderDoc, OrderModel>({
         }
     }
 })
+
+ticketSchema.set("versionKey", "version");
+ticketSchema.pre("save", function () {
+    this.$where = {
+        version: this.get("version")
+    };
+    this.increment();
+});
+
+
 
 ticketSchema.statics.build = (attrs: OrderAttrs) => {
     return new Order(attrs);

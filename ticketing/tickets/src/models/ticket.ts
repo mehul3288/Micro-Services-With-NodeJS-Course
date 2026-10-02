@@ -36,13 +36,13 @@
 //         }
 //     }
 // })
-// // ticketSchema.set("versionKey", "version");
-// // ticketSchema.pre("save", function () {
-// //     this.$where = {
-// //         version: this.get("version")
-// //     };
-// //     this.increment();
-// // });
+// ticketSchema.set("versionKey", "version");
+// ticketSchema.pre("save", function () {
+//     this.$where = {
+//         version: this.get("version")
+//     };
+//     this.increment();
+// });
 
 // ticketSchema.statics.build = (attrs: TicketAttrs) => {
 //     return new Ticket(attrs);
@@ -94,9 +94,9 @@ const ticketSchema = new Schema<TicketDoc, TicketModel>({
         required: false
     }
 }, {
-    versionKey: "version",
-    //It will only work if the file is modified not on every save instead
-    optimisticConcurrency: true,
+    // versionKey: "version",
+    // //It will only work if the file is modified not on every save instead
+    // optimisticConcurrency: true,
     toJSON: {
         transform(doc, ret: any) {
             ret.id = ret._id;
@@ -104,6 +104,15 @@ const ticketSchema = new Schema<TicketDoc, TicketModel>({
             delete ret.__v;
         }
     }
+});
+
+
+ticketSchema.set("versionKey", "version");
+ticketSchema.pre("save", function () {
+    this.$where = {
+        version: this.get("version")
+    };
+    this.increment();
 });
 
 ticketSchema.statics.build = (attrs: TicketAttrs) => {

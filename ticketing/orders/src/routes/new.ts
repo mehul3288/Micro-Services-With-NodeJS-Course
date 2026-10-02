@@ -7,7 +7,7 @@ import { Order } from "../models/order";
 import { OrderCreatedPublisher } from "../events/publishers/order-created-publisher";
 import { natsWrapper } from "../nats-wrapper";
 const router = express.Router();
-const EXPIRATION_WINDOW_SECONDS = 15 * 60;
+const EXPIRATION_WINDOW_SECONDS = 1 * 60;
 
 
 //Here we are assuming that the ticketId will always be a type of mongodb id but in future we can change the db to any other type and there we can have another type of id so we are coupling this logic over here and we should put this to a common area like a common library from where we can access this. for e.g, we can have another ticket service which uses different db and we can use that particular library method  to validate the id

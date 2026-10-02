@@ -31,8 +31,8 @@ const ticketSchema = new Schema<TicketDoc, TicketModel>({
         min: 0
     }
 }, {
-    versionKey: "version",
-    optimisticConcurrency: true,
+    // versionKey: "version",
+    // optimisticConcurrency: true,
     toJSON: {
         transform(doc, ret: any) {
             ret.id = ret._id;
@@ -41,6 +41,14 @@ const ticketSchema = new Schema<TicketDoc, TicketModel>({
         }
     }
 })
+
+ticketSchema.set("versionKey", "version");
+ticketSchema.pre("save", function () {
+    this.$where = {
+        version: this.get("version")
+    };
+    this.increment();
+});
 
 //Ye ticket ke individual document ke upr method add krega not on the model
 ticketSchema.methods.isReserved = async function () {
