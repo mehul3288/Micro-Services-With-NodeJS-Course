@@ -1,5 +1,5 @@
 {
-  "name": "tickets",
+  "name": "payments",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -33,6 +33,7 @@
     "mongoose-update-if-current": "^1.4.0",
     "node-nats-streaming": "^0.3.2",
     "nodemon": "^3.1.14",
+    "stripe": "^23.0.0",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2"
   },

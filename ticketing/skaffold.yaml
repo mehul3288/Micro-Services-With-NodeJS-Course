@@ -48,6 +48,14 @@ build:
         manual:
           - src: 'src/**/*.ts'
             dest: .
+    - image: mehul3288/payments
+      context: payments
+      docker:
+        dockerfile: Dockerfile
+      sync:
+        manual:
+          - src: 'src/**/*.ts'
+            dest: .
     
 
 # apiVersion: skaffold/v4beta11
