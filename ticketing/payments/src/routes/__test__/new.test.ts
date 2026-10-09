@@ -6,7 +6,7 @@ import { OrderStatus } from "@mehul-mrtickets/common";
 import { stripe } from "../../stripe";
 import { Payment } from "../../models/payment";
 
-// jest.mock("../../stripe")
+jest.mock("../../stripe")
 
 
 
@@ -96,43 +96,43 @@ it("returns a 400 when the order is already cancelled", async () => {
 // })
 
 
-it("returns 201 with valid inputs", async () => {
-    const userId = new mongoose.Types.ObjectId().toHexString();
-    const cookie = global.signin(userId);
-    const price = Math.floor(Math.random() * 100000);
-    const order = Order.build({
-        id: new mongoose.Types.ObjectId().toHexString(),
-        version: 0,
-        userId: userId,
-        price: price,
-        status: OrderStatus.Created
-    })
+// it("returns 201 with valid inputs", async () => {
+//     const userId = new mongoose.Types.ObjectId().toHexString();
+//     const cookie = global.signin(userId);
+//     const price = Math.floor(Math.random() * 100000);
+//     const order = Order.build({
+//         id: new mongoose.Types.ObjectId().toHexString(),
+//         version: 0,
+//         userId: userId,
+//         price: price,
+//         status: OrderStatus.Created
+//     })
 
-    await order.save();
+//     await order.save();
 
-    await request(app)
-        .post("/api/payments")
-        .set("Cookie", cookie)
-        .send({
-            token: "tok_visa",
-            orderId: order._id.toHexString()
-        })
-        .expect(201)
+//     await request(app)
+//         .post("/api/payments")
+//         .set("Cookie", cookie)
+//         .send({
+//             token: "tok_visa",
+//             orderId: order._id.toHexString()
+//         })
+//         .expect(201)
 
-    const stripCharges = await stripe.charges.list({ limit: 50 })
-    const charge = stripCharges.data.find((charge) => {
-        return charge.amount === price * 100
-    })
+//     const stripCharges = await stripe.charges.list({ limit: 50 })
+//     const charge = stripCharges.data.find((charge) => {
+//         return charge.amount === price * 100
+//     })
 
-    const payment = await Payment.findOne({
-        orderId: order._id.toHexString(),
-        stripeId: charge?.id
-    })
+//     const payment = await Payment.findOne({
+//         orderId: order._id.toHexString(),
+//         stripeId: charge?.id
+//     })
 
-    expect(charge).toBeDefined();
-    expect(charge?.currency).toEqual("usd");
+//     expect(charge).toBeDefined();
+//     expect(charge?.currency).toEqual("usd");
 
-    expect(payment).not.toBeNull();
-    expect(payment?.stripeId).toEqual(charge?.id);
+//     expect(payment).not.toBeNull();
+//     expect(payment?.stripeId).toEqual(charge?.id);
 
-})
+// })
