@@ -168,11 +168,66 @@ Kubernetes clusters running inside Docker Desktop / Minikube expose port 80 and 
     annotations:
       kubernetes.io/ingress.class: nginx
       nginx.ingress.kubernetes.io/use-regex: 'true'
+  spec:
+    rules:
+      - host: ticketing.dev   # <── Tells Ingress-Nginx to listen specifically for this domain!
+        http:
+          paths:
+            - path: /api/users/?(.*)
+              pathType: ImplementationSpecific
+              backend:
+                service:
+                  name: auth-srv
+                  port:
+                    number: 3000
   ```
 
-#### 🔍 Hidden Details:
-- The controller continuously watches the Kubernetes API server for `Ingress` resources.
-- When you apply `ingress-srv.yaml`, the controller translates your YAML rules into native Nginx server blocks dynamically without restarting Nginx.
+#### 🔍 Deep Dive: How `ticketing.dev` is Mapped to Ingress-Nginx
+
+The connection between the URL in your browser and the Ingress controller happens in **two stages**:
+
+##### Stage 1: How your computer reaches Ingress-Nginx (Port 80/443)
+1. **Local DNS (`hosts` file):**
+   - When you type `https://ticketing.dev`, your operating system checks `C:\Windows\System32\drivers\etc\hosts`.
+   - It finds `127.0.0.1 ticketing.dev` and directs the request to your local loopback address (`127.0.0.1`).
+2. **Docker Desktop LoadBalancer Port Binding:**
+   - Ingress-Nginx runs a Kubernetes Service of type `LoadBalancer` inside the `ingress-nginx` namespace.
+   - Docker Desktop automatically binds this Service's external ports (`80` and `443`) to your computer's `localhost` (`127.0.0.1`).
+   - Consequently, sending packets to `127.0.0.1:80` lands directly at the Ingress-Nginx entry point.
+
+##### Stage 2: How Ingress-Nginx recognizes `ticketing.dev` (HTTP `Host` Header)
+1. **The HTTP `Host` Header:**
+   - Because the browser connected to `ticketing.dev`, it sends an HTTP header with every request:
+     ```http
+     GET /api/users/currentuser HTTP/1.1
+     Host: ticketing.dev
+     ```
+2. **Dynamic `nginx.conf` Generation:**
+   - The Ingress-Nginx Controller pod continuously watches the Kubernetes API for `Ingress` resources.
+   - When it reads [ingress-srv.yaml](file:///d:/Node%20JS/Micro%20Services%20With%20NodeJS%20Course/ticketing/infra/k8s/ingress-srv.yaml), it translates `host: ticketing.dev` into an internal NGINX virtual host (`server` block):
+     ```nginx
+     server {
+         server_name ticketing.dev;
+
+         location ~* ^/api/users/?(.*) {
+             proxy_pass http://auth-srv:3000;
+         }
+         ...
+     }
+     ```
+3. **Route Match:**
+   - Ingress-Nginx inspects the incoming request's `Host: ticketing.dev` header, finds the matching `server_name ticketing.dev` block, and routes the request according to your defined path rules.
+
+---
+
+#### 💡 How to Check the Ingress-Nginx IP Address:
+
+| What you want to check | Command | What to look for |
+| :--- | :--- | :--- |
+| **External entry point (from your host/browser)** | `kubectl get svc -n ingress-nginx` | Check `EXTERNAL-IP` (shows `localhost` on Docker Desktop, or a Cloud LoadBalancer public IP on AWS/GCP). |
+| **Ingress Domain status** | `kubectl get ingress` | Shows `ADDRESS: localhost` and `HOSTS: ticketing.dev`. |
+| **Internal Cluster IP (inside K8s)** | `kubectl get svc -n ingress-nginx` | Check `CLUSTER-IP` (e.g. `10.110.226.254`), or use internal DNS `ingress-nginx-controller.ingress-nginx.svc.cluster.local`. |
+| **Controller Pod Direct IP** | `kubectl get pods -n ingress-nginx -o wide` | Shows the individual pod IP inside the container network. |
 
 ---
 
