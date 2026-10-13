@@ -2,17 +2,16 @@ import { Message, Stan } from "node-nats-streaming";
 import { Subjects } from "./subjects";
 
 interface Event {
-    subject: Subjects,
-    data: any
+    subject: Subjects;
+    data: any;
 }
 
 export abstract class Listener<T extends Event> {
-    abstract subject: T['subject'];
+    abstract subject: T["subject"];
     abstract queueGroupName: string;
-    abstract onMessage(data: T['data'], msg: Message): void;
+    abstract onMessage(data: T["data"], msg: Message): void | Promise<void>;
     protected ackWait = 5 * 1000;
     protected client: Stan;
-
 
     constructor(client: Stan) {
         this.client = client;
@@ -33,16 +32,20 @@ export abstract class Listener<T extends Event> {
             this.subscriptionOptions()
         );
 
-        subscriptions.on("message", (msg: Message) => {
+        subscriptions.on("message", async (msg: Message) => {
             console.log(
                 `Message received: ${this.subject} / ${this.queueGroupName}`
             );
 
-            const parsedData = this.parseMessage(msg);
-            this.onMessage(parsedData, msg);
-        })
+            try {
+                const parsedData = this.parseMessage(msg);
+                await this.onMessage(parsedData, msg);
+            } catch (err) {
+                console.error(`Error processing message for ${this.subject}:`, err);
+                // Do not ack: NATS Streaming will redeliver the message after ackWait expires
+            }
+        });
     }
-
 
     parseMessage(msg: Message) {
         const data = msg.getData();

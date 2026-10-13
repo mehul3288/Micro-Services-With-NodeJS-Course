@@ -12,11 +12,12 @@ interface OrderAttrs {
 }
 
 interface OrderDoc extends mongoose.Document {
-    userId: string,
-    status: OrderStatus,
-    expiresAt: Date,
-    ticket: TicketDoc,
-    version: number
+    id: string;
+    userId: string;
+    status: OrderStatus;
+    expiresAt: Date;
+    ticket: TicketDoc;
+    version: number;
 }
 
 interface OrderModel extends Model<OrderDoc> {

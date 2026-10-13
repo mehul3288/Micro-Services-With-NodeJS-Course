@@ -1,23 +1,24 @@
 import mongoose, { Schema } from "mongoose";
-import { Order, OrderStatus } from "./order";
 
 interface TicketAttrs {
-    id: string,
-    title: string,
-    price: number
+    id: string;
+    title: string;
+    price: number;
 }
 
 export interface TicketDoc extends mongoose.Document {
     id: string;
-    title: string,
-    price: number,
-    version: number,
-    isReserved(): Promise<boolean>;
+    title: string;
+    price: number;
+    version: number;
+    reservedBy?: string | null;
 }
 
 interface TicketModel extends mongoose.Model<TicketDoc> {
-    findByEvent(event: { id: string, version: number }): TicketDoc
-    build(attrs: TicketAttrs): TicketDoc
+    findByEvent(event: { id: string; version: number }): Promise<TicketDoc | null>;
+    build(attrs: TicketAttrs): TicketDoc;
+    reserve(ticketId: string, orderId: string): Promise<TicketDoc | null>;
+    release(ticketId: string, orderId: string): Promise<any>;
 }
 
 const ticketSchema = new Schema<TicketDoc, TicketModel>({
@@ -29,10 +30,12 @@ const ticketSchema = new Schema<TicketDoc, TicketModel>({
         type: Number,
         required: true,
         min: 0
+    },
+    reservedBy: {
+        type: String,
+        default: null
     }
 }, {
-    // versionKey: "version",
-    // optimisticConcurrency: true,
     toJSON: {
         transform(doc, ret: any) {
             ret.id = ret._id;
@@ -40,7 +43,7 @@ const ticketSchema = new Schema<TicketDoc, TicketModel>({
             delete ret.__v;
         }
     }
-})
+});
 
 ticketSchema.set("versionKey", "version");
 ticketSchema.pre("save", function () {
@@ -50,59 +53,36 @@ ticketSchema.pre("save", function () {
     this.increment();
 });
 
-//Ye ticket ke individual document ke upr method add krega not on the model
-ticketSchema.methods.isReserved = async function () {
-    // this === full document that we called 
-    // Run query to look at all orders. Find an order where the ticket is the ticket we just found
-    // and that order is not cancelled. If found throw error
-    const existingOrder = await Order.findOne({
-        ticket: this,
-        status: {
-            $in: [
-                OrderStatus.Created,
-                OrderStatus.AwaitingPayment,
-                OrderStatus.Complete
-            ]
-        }
-    })
-
-    return !!existingOrder;
+ticketSchema.statics.reserve = (ticketId: string, orderId: string) => {
+    return Ticket.findOneAndUpdate(
+        { _id: ticketId, reservedBy: null },
+        { $set: { reservedBy: orderId } },
+        { returnDocument: "after" }
+    );
 };
 
-// ticketSchema.statics.isReserved = async (ticket: TicketDoc) => {
-//     const existingOrder = await Order.findOne({
-//         ticket: ticket,
-//         status: {
-//             $in: [
-//                 OrderStatus.Created,
-//                 OrderStatus.AwaitingPayment,
-//                 OrderStatus.Complete
-//             ]
-//         }
-//     })
+ticketSchema.statics.release = (ticketId: string, orderId: string) => {
+    return Ticket.updateOne(
+        { _id: ticketId, reservedBy: orderId },
+        { $set: { reservedBy: null } }
+    );
+};
 
-//     return !!existingOrder;
-// }
-
-
-
-
-ticketSchema.statics.findByEvent = (event: { id: string, version: number }) => {
+ticketSchema.statics.findByEvent = (event: { id: string; version: number }) => {
     const { id, version } = event;
     return Ticket.findOne({
         _id: id,
         version: version - 1
-    })
-}
+    });
+};
 
 ticketSchema.statics.build = (attrs: TicketAttrs) => {
-
     return new Ticket({
         _id: attrs.id,
         title: attrs.title,
         price: attrs.price
     });
-}
+};
 
 const Ticket = mongoose.model<TicketDoc, TicketModel>("Ticket", ticketSchema);
 

@@ -240,14 +240,14 @@ Record in `results/phase-02-correctness.md`.
 
 ## 10. Checklist
 
-- [ ] Concept lesson written in `fixes/lessons/02-concurrency-and-race-conditions.md`, taught & discussed in detail, and explicit go-ahead signal received from developer
-- [ ] `Ticket.reserve()` / `Ticket.release()` + `reservedBy` field in orders service
-- [ ] `isReserved()` removed, routes + expiration listener updated
-- [ ] Payments: existing-payment check, idempotency key, rounding, validation, unique index, awaited publish
-- [ ] Delete route: cannot cancel complete orders, idempotent cancel
-- [ ] Base listener: awaited + caught `onMessage` (common published)
-- [ ] Tickets listener: awaited publish
-- [ ] Expiration: clamped delay, `jobId`, awaited publish + Bull retries
-- [ ] All tests pass, new tests added
-- [ ] Load tests show exactly 1 order / 1 payment
-- [ ] `notes/02-race-conditions-and-idempotency.md` written
+- [x] Concept lesson written in `fixes/lessons/02-concurrency-and-race-conditions.md`, taught & discussed in detail, and explicit go-ahead signal received from developer
+- [x] `Ticket.reserve()` / `Ticket.release()` + `reservedBy` field in orders service
+- [x] `isReserved()` removed, routes + expiration listener updated
+- [x] Payments: existing-payment check, idempotency key, rounding, validation, unique index, awaited publish
+- [x] Delete route: cannot cancel complete orders, idempotent cancel
+- [x] Base listener: awaited + caught `onMessage` (common published)
+- [x] Tickets listener: awaited publish
+- [x] Expiration: clamped delay, `jobId`, awaited publish + Bull retries
+- [x] All tests pass, new tests added
+- [x] Load tests show exactly 1 order / 1 payment
+- [x] `notes/02-race-conditions-and-idempotency.md` written

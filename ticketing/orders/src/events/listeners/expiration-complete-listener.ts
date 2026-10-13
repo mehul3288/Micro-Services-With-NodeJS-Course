@@ -2,6 +2,7 @@ import { ExpirationCompleteEvent, Listener, OrderStatus, Subjects } from "@mehul
 import { queueGroupName } from "./queue-group-name";
 import { Message } from "node-nats-streaming";
 import { Order } from "../../models/order";
+import { Ticket } from "../../models/ticket";
 import { OrderCancelledPublisher } from "../publishers/order-cancelled-publisher";
 import { natsWrapper } from "../../nats-wrapper";
 
@@ -9,8 +10,8 @@ export class ExpirationCompleteListener extends Listener<ExpirationCompleteEvent
     subject: Subjects.ExpirationComplete = Subjects.ExpirationComplete;
     queueGroupName: string = queueGroupName;
 
-    async onMessage(data: ExpirationCompleteEvent['data'], msg: Message) {
-        const order = await Order.findById(data.orderId).populate("ticket")
+    async onMessage(data: ExpirationCompleteEvent["data"], msg: Message) {
+        const order = await Order.findById(data.orderId).populate("ticket");
 
         if (!order) {
             throw new Error("Order not found");
@@ -20,9 +21,12 @@ export class ExpirationCompleteListener extends Listener<ExpirationCompleteEvent
             return msg.ack();
         }
 
+        // Release atomic ticket reservation upon order expiration
+        await Ticket.release(order.ticket.id, order.id);
+
         order.set({
             status: OrderStatus.Cancelled
-        })
+        });
 
         await order.save();
 
@@ -32,7 +36,7 @@ export class ExpirationCompleteListener extends Listener<ExpirationCompleteEvent
             ticket: {
                 id: order.ticket.id
             }
-        })
+        });
 
         msg.ack();
     }
