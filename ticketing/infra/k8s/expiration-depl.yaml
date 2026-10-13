@@ -12,9 +12,13 @@ spec:
       labels:
         app: expiration
     spec:
+      terminationGracePeriodSeconds: 30
       containers:
         - name: expiration
           image: mehul3288/expiration
+          ports:
+            - containerPort: 3000
+              name: http
           env:
             - name: NATS_URL
               value: "http://nats-srv:4222"
@@ -26,3 +30,27 @@ spec:
                   fieldPath: metadata.name
             - name: REDIS_HOST
               value: "expiration-redis-srv"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /healthz/ready
+              port: 3000
+            periodSeconds: 5
+            failureThreshold: 2
+          livenessProbe:
+            httpGet:
+              path: /healthz/live
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "5"]

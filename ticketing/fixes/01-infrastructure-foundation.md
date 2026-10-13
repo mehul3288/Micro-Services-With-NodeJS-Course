@@ -245,13 +245,13 @@ Record the numbers in `results/phase-01-infrastructure.md`.
 
 ## 9. Checklist
 
-- [ ] Concept lesson written in `fixes/lessons/01-infrastructure-foundation.md`, taught & discussed in detail, and explicit go-ahead signal received from developer
-- [ ] 4 Mongo StatefulSets with PVC + replica set init
-- [ ] All `MONGO_URI` values updated with `?replicaSet=rs0`
-- [ ] Redis StatefulSet with AOF + PVC
-- [ ] `healthRouter` + `registerGracefulShutdown` added to common, version published
-- [ ] All services: health router, graceful shutdown, fail-fast startup
-- [ ] Expiration service: minimal health server
-- [ ] Probes, preStop, resources on every Deployment
-- [ ] Verification table complete, results recorded
-- [ ] `notes/01-kubernetes-production-basics.md` written
+- [x] Concept lesson written in `fixes/lessons/01-infrastructure-foundation.md`, taught & discussed in detail, and explicit go-ahead signal received from developer
+- [x] 4 Mongo StatefulSets with PVC + replica set init
+- [x] All `MONGO_URI` values updated with `?replicaSet=rs0`
+- [x] Redis StatefulSet with AOF + PVC
+- [x] `healthRouter` + `registerGracefulShutdown` added to common, version published
+- [x] All services: health router, graceful shutdown, fail-fast startup
+- [x] Expiration service: minimal health server
+- [x] Probes, preStop, resources on every Deployment
+- [x] Verification table complete, results recorded
+- [x] `notes/01-kubernetes-production-basics.md` written

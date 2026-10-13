@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: orders-mongo-srv
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app: orders-mongo
+  ports:
+    - name: db
+      protocol: TCP
+      port: 27017
+      targetPort: 27017
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: orders-mongo
+spec:
+  serviceName: orders-mongo-srv
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orders-mongo
+  template:
+    metadata:
+      labels:
+        app: orders-mongo
+    spec:
+      containers:
+        - name: orders-mongo
+          image: mongo
+          args: ["--replSet", "rs0", "--bind_ip_all"]
+          ports:
+            - containerPort: 27017
+              name: db
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: orders-mongo-storage
+              mountPath: /data/db
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - |
+                    until mongosh --eval "db.adminCommand('ping')" >/dev/null 2>&1; do
+                      sleep 1
+                    done
+                    mongosh --eval "try { rs.status() } catch(e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'orders-mongo-0.orders-mongo-srv.default.svc.cluster.local:27017' }] }) }" >/dev/null 2>&1 || true
+  volumeClaimTemplates:
+    - metadata:
+        name: orders-mongo-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi

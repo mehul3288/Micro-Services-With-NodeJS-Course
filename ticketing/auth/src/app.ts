@@ -1,44 +1,35 @@
 import express from "express";
 import { json } from "body-parser";
+import mongoose from "mongoose";
 import { currentUserRouter } from "./routes/current-user";
 import { signinRouter } from "./routes/signin";
 import { signoutRouter } from "./routes/signout";
 import { signupRouter } from "./routes/signup";
-import { errorHandler, NotFoundError } from "@mehul-mrtickets/common";
+import { errorHandler, NotFoundError, healthRouter, shutdownState } from "@mehul-mrtickets/common";
 import cookieSession from "cookie-session";
 
 const app = express();
 app.use(json());
 app.set("trust proxy", true);
 app.use(cookieSession({
-    //not encrypted
     signed: false,
-    //will run on https only
     secure: process.env.NODE_ENV !== "test"
-}))
+}));
+
+app.use(healthRouter([
+    () => mongoose.connection.readyState === 1,
+    () => !shutdownState.isShuttingDown
+]));
+
 app.use(currentUserRouter);
 app.use(signinRouter);
 app.use(signoutRouter);
 app.use(signupRouter);
 
-// app.all("*splat", async (req, res, next) => {
-//     next(new NotFoundError());
-// });
-
-
-// Express 4 (Instructor's Version):
-
-// Does not natively handle rejected Promises from async route handlers.
-// Thrown async errors become unhandled, causing the request to hang indefinitely in Postman unless next(err) or express-async-errors is used.
-// Express 5 (Your Version):
-
-// Comes with built-in native support for async/await and Promises.
-// Automatically intercepts any thrown async errors and forwards them straight to your error handler without hanging.
-
 app.all("*splat", async () => {
-    throw new NotFoundError()
-})
+    throw new NotFoundError();
+});
 
 app.use(errorHandler);
 
-export { app }
+export { app };

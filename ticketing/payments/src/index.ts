@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { app } from "./app";
 import { natsWrapper } from "./nats-wrapper";
-import { randomBytes } from "node:crypto";
+import { registerGracefulShutdown } from "@mehul-mrtickets/common";
 import { OrderCancelledListener } from "./events/listeners/order-cancelled-listener";
 import { OrderCreatedListener } from "./events/listeners/order-created-listener";
 
@@ -22,26 +22,29 @@ const start = async () => {
         throw new Error("NATS_URL not defined");
     }
     try {
-        await natsWrapper.connect(process.env.NATS_CLUSTER_ID, process.env.NATS_CLIENT_ID!, process.env.NATS_URL)
+        await natsWrapper.connect(process.env.NATS_CLUSTER_ID, process.env.NATS_CLIENT_ID, process.env.NATS_URL);
         await mongoose.connect(process.env.MONGO_URI);
-        console.log("Connected to Mongo!!!")
-        natsWrapper.client.on("close", () => {
-            console.log("Nats Connection closed!");
-            process.exit();
-
-        })
-
-        process.on("SIGINT", () => natsWrapper.client.close());
-        process.on("SIGTERM", () => natsWrapper.client.close());
+        console.log("Connected to Mongo!!!");
 
         new OrderCancelledListener(natsWrapper.client).listen();
         new OrderCreatedListener(natsWrapper.client).listen();
-    } catch (e) {
-        console.error(e);
-    }
-    app.listen(3000, () => {
-        console.log("Server is running at port 3000!!!!");
-    });
-}
-start();
 
+        const server = app.listen(3000, () => {
+            console.log("Server is running at port 3000!!!!");
+        });
+
+        registerGracefulShutdown(server, [
+            async () => {
+                natsWrapper.client.close();
+            },
+            async () => {
+                await mongoose.disconnect();
+            }
+        ]);
+    } catch (e) {
+        console.error("Failed to start payments service:", e);
+        process.exit(1);
+    }
+};
+
+start();

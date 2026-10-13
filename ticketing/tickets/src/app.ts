@@ -1,7 +1,9 @@
 import express from "express";
 import { json } from "body-parser";
-import { currentUser, errorHandler, NotFoundError } from "@mehul-mrtickets/common";
+import mongoose from "mongoose";
+import { currentUser, errorHandler, NotFoundError, healthRouter, shutdownState } from "@mehul-mrtickets/common";
 import cookieSession from "cookie-session";
+import { natsWrapper } from "./nats-wrapper";
 import { createTicketRouter } from "./routes/new";
 import { showTicketRouter } from "./routes/show";
 import { indexTicketRouter } from "./routes";
@@ -11,22 +13,26 @@ const app = express();
 app.use(json());
 app.set("trust proxy", true);
 app.use(cookieSession({
-    //not encrypted
     signed: false,
-    //will run on https only
     secure: process.env.NODE_ENV !== "test"
-}))
-app.use(currentUser)
-app.use(createTicketRouter)
-app.use(showTicketRouter)
-app.use(indexTicketRouter)
-app.use(updateTicketRouter)
+}));
 
+app.use(healthRouter([
+    () => mongoose.connection.readyState === 1,
+    () => natsWrapper.isConnected,
+    () => !shutdownState.isShuttingDown
+]));
+
+app.use(currentUser);
+app.use(createTicketRouter);
+app.use(showTicketRouter);
+app.use(indexTicketRouter);
+app.use(updateTicketRouter);
 
 app.all("*splat", async () => {
-    throw new NotFoundError()
-})
+    throw new NotFoundError();
+});
 
 app.use(errorHandler);
 
-export { app }
+export { app };
