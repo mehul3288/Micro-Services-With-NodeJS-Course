@@ -1,24 +1,19 @@
-import { OrderCreatedEvent, OrderStatus } from "@mehul-mrtickets/common"
-import { Ticket } from "../../../models/ticket"
-import { natsWrapper } from "../../../nats-wrapper"
-import { OrderCreatedListener } from "../order-created-listener"
-import mongoose from "mongoose"
-
+import { EventMetadata, OrderCreatedEvent, OrderStatus } from "@mehul-mrtickets/common";
+import { Ticket } from "../../../models/ticket";
+import { kafkaWrapper } from "../../../kafka-wrapper";
+import { OrderCreatedListener } from "../order-created-listener";
+import mongoose from "mongoose";
 
 const setup = async () => {
-    // create an instance of the listener
-    const listener = new OrderCreatedListener(natsWrapper.client)
+    const listener = new OrderCreatedListener();
 
-    //create and save a ticket
     const ticket = Ticket.build({
         title: "concert",
         price: 99,
-        userId: "wsd"
-    })
-
+        userId: "wsd",
+    });
     await ticket.save();
 
-    //create the fake data event
     const data: OrderCreatedEvent["data"] = {
         id: new mongoose.Types.ObjectId().toHexString(),
         version: 0,
@@ -27,56 +22,40 @@ const setup = async () => {
         expiresAt: "2025-10-01T12:00:00.000Z",
         ticket: {
             id: ticket.id,
-            price: ticket.price
-        }
-    }
+            price: ticket.price,
+        },
+    };
 
+    const metadata: EventMetadata = {
+        eventId: "test-event-id",
+        occurredAt: new Date().toISOString(),
+    };
 
-    // Create a fake message object
-    //@ts-ignore
-    const msg: Message = {
-        ack: jest.fn()
-    }
+    return { listener, ticket, data, metadata };
+};
 
-    return { listener, ticket, data, msg }
-}
+it("reserves the ticket", async () => {
+    const { listener, ticket, data, metadata } = await setup();
 
-it("Ticket reserved", async () => {
-    const { listener, ticket, data, msg } = await setup();
+    await listener.onMessage(data, metadata);
 
-    //call the onMessage function with the fake data
-    await listener.onMessage(data, msg);
-
-    //write assertion to make sure the ticket is reserved
     const updatedTicket = await Ticket.findById(ticket.id);
 
     expect(updatedTicket).toBeDefined();
     expect(updatedTicket?.orderId).toEqual(data.id);
+});
 
-    //make sure that the nats wrapper was called
-    expect(msg.ack).toHaveBeenCalled();
-})
+it("publishes a ticket updated event with partition key", async () => {
+    const { listener, ticket, data, metadata } = await setup();
 
-it("publishes a ticket updated event", async () => {
-    const { listener, ticket, data, msg } = await setup();
+    await listener.onMessage(data, metadata);
 
-    await listener.onMessage(data, msg);
+    expect(kafkaWrapper.producer.send).toHaveBeenCalled();
 
-    //@ts-ignore
-    //Using this we can see whatever argumnets are passed to the publish function. [["ticket:updated", "..."]]
-    // [
-    //   [
-    //     'ticket:updated',
-    //     '{"id":"6abe0d16db52df2af71e0501","version":1,"title":"concert","price":99,"userId":"wsd","orderId":"6abe0d16db52df2af71e0502"}',
-    //     [Function (anonymous)]
-    //   ]
-    // ]
-    // console.log(natsWrapper.client.publish.mock.calls);
+    const sendCall = (kafkaWrapper.producer.send as jest.Mock).mock.calls[0][0];
+    const message = sendCall.messages[0];
+    const ticketUpdated = JSON.parse(message.value);
 
-    //If you want to use the typed arguments of the publish function you can cast it to jest.Mock
-    const ticketUpdated = JSON.parse((natsWrapper.client.publish as jest.Mock).mock.calls[0][1])
-    expect(data.id).toEqual(ticketUpdated.orderId)
-
-    expect(natsWrapper.client.publish).toHaveBeenCalled();
-
-})
+    expect(ticketUpdated.orderId).toEqual(data.id);
+    expect(message.key).toEqual(ticket.id);
+});

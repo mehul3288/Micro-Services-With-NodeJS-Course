@@ -1,12 +1,14 @@
 import express from "express";
 import { healthRouter, shutdownState } from "@mehul-mrtickets/common";
-import { natsWrapper } from "./nats-wrapper";
+import { kafkaWrapper } from "./kafka-wrapper";
 
 const app = express();
 
-app.use(healthRouter([
-    () => natsWrapper.isConnected,
-    () => !shutdownState.isShuttingDown
-]));
+app.use(
+    healthRouter([
+        () => kafkaWrapper.isConnected,
+        () => !shutdownState.isShuttingDown,
+    ])
+);
 
 export { app };

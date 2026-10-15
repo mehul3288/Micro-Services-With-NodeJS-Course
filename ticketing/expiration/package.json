@@ -18,12 +18,12 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@mehul-mrtickets/common": "^1.0.20",
+    "@mehul-mrtickets/common": "^2.0.0",
     "@types/bull": "^3.15.9",
     "@types/express": "^5.0.6",
     "bull": "^4.16.5",
     "express": "^5.2.1",
-    "node-nats-streaming": "^0.3.2",
+    "kafkajs": "^2.2.4",
     "nodemon": "^3.1.14",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2"

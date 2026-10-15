@@ -1,28 +1,38 @@
-import { Stan } from "node-nats-streaming";
+import { Producer } from "kafkajs";
+import { randomUUID } from "crypto";
 import { Subjects } from "./subjects";
+import { topicFor } from "./topics";
 
 interface Event {
     subject: Subjects;
-    data: any
+    data: any;
 }
 
 export abstract class Publisher<T extends Event> {
-    abstract subject: T['subject'];
-    protected client: Stan
-    constructor(client: Stan) {
-        this.client = client
+    abstract subject: T["subject"];
+    abstract partitionKey(data: T["data"]): string;
+    protected producer: Producer;
+
+    constructor(producer: Producer) {
+        this.producer = producer;
     }
 
-    publish(data: T['data']): Promise<void> {
-        return new Promise((res, rej) => {
-            this.client.publish(this.subject, JSON.stringify(data), (err) => {
-                if (err) {
-                    return rej(err);
-                }
-                console.log("Event published to subject ", this.subject)
-                res();
-            });
-        })
-
+    async publish(data: T["data"]): Promise<void> {
+        const topic = topicFor[this.subject];
+        await this.producer.send({
+            topic,
+            messages: [
+                {
+                    key: this.partitionKey(data),
+                    value: JSON.stringify(data),
+                    headers: {
+                        "event-id": randomUUID(),
+                        "event-type": this.subject,
+                        "occurred-at": new Date().toISOString(),
+                    },
+                },
+            ],
+        });
+        console.log(`Event published to topic ${topic} [${this.subject}]`);
     }
 }

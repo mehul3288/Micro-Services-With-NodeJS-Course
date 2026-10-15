@@ -1,30 +1,36 @@
-import { Listener, OrderCancelledEvent, Subjects } from "@mehul-mrtickets/common";
-import { Message } from "node-nats-streaming";
-import { queueGroupName } from "./queue-group-name";
+import { EventMetadata, Listener, OrderCancelledEvent, Subjects } from "@mehul-mrtickets/common";
 import { Ticket } from "../../models/ticket";
 import { TicketUpdatedPublisher } from "../publishers/ticket-updated-publisher";
+import { kafkaWrapper } from "../../kafka-wrapper";
 
 export class OrderCancelledListener extends Listener<OrderCancelledEvent> {
     subject: Subjects.OrderCancelled = Subjects.OrderCancelled;
-    queueGroupName: string = queueGroupName;
-    async onMessage(data: OrderCancelledEvent['data'], msg: Message) {
+
+    async onMessage(data: OrderCancelledEvent["data"], metadata: EventMetadata): Promise<void> {
         const ticket = await Ticket.findById(data.ticket.id);
 
         if (!ticket) {
-            throw new Error("Ticket not found")
+            throw new Error("Ticket not found");
         }
-        ticket.set({ orderId: undefined })
+
+        // Defensive check: only release if this order actually holds the reservation
+        if (ticket.orderId !== data.id) {
+            console.warn(
+                `OrderCancelledListener: Ticket ${ticket.id} orderId (${ticket.orderId}) does not match cancelling order ${data.id}. Skipping release.`
+            );
+            return;
+        }
+
+        ticket.set({ orderId: undefined });
         await ticket.save();
 
-        await new TicketUpdatedPublisher(this.client).publish({
+        await new TicketUpdatedPublisher(kafkaWrapper.producer).publish({
             id: ticket.id,
             version: ticket.version,
             title: ticket.title,
             price: ticket.price,
             userId: ticket.userId,
-            orderId: ticket.orderId
+            orderId: ticket.orderId,
         });
-
-        msg.ack();
     }
 }

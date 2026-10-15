@@ -3,7 +3,7 @@ import { body } from "express-validator"
 import express, { Request, Response } from "express";
 import { Ticket } from "../models/ticket";
 import { TicketCreatedPublisher } from "../events/publishers/ticket-created-publisher";
-import { natsWrapper } from "../nats-wrapper";
+import { kafkaWrapper } from "../kafka-wrapper";
 
 const router = express.Router();
 router.post("/api/tickets", requireAuth,
@@ -15,7 +15,7 @@ router.post("/api/tickets", requireAuth,
         const ticket = Ticket.build({ title, price, userId: req.currentUser!.id });
 
         await ticket.save();
-        await new TicketCreatedPublisher(natsWrapper.client).publish({
+        await new TicketCreatedPublisher(kafkaWrapper.producer).publish({
             id: ticket.id,
             title: ticket.title,
             price: ticket.price,

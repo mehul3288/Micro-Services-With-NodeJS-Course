@@ -1,13 +1,10 @@
-import { Listener, OrderCreatedEvent, OrderStatus, Subjects } from "@mehul-mrtickets/common";
-import { Message } from "node-nats-streaming";
-import { queueGroupName } from "./queue-group-name";
+import { EventMetadata, Listener, OrderCreatedEvent, Subjects } from "@mehul-mrtickets/common";
 import { Order } from "../../models/order";
 
 export class OrderCreatedListener extends Listener<OrderCreatedEvent> {
     subject: Subjects.OrderCreated = Subjects.OrderCreated;
-    queueGroupName = queueGroupName
 
-    async onMessage(data: OrderCreatedEvent["data"], msg: Message) {
+    async onMessage(data: OrderCreatedEvent["data"], metadata: EventMetadata): Promise<void> {
         const { id, version, userId, ticket, status } = data;
 
         const order = Order.build({
@@ -15,10 +12,9 @@ export class OrderCreatedListener extends Listener<OrderCreatedEvent> {
             version,
             userId,
             price: ticket.price,
-            status
-        })
+            status,
+        });
 
         await order.save();
-        msg.ack();
     }
 }

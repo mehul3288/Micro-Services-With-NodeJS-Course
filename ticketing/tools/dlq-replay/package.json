@@ -1,0 +1,17 @@
+{
+  "name": "dlq-replay-tool",
+  "version": "1.0.0",
+  "description": "Kafka Dead Letter Queue replay CLI utility",
+  "main": "replay.ts",
+  "scripts": {
+    "start": "ts-node replay.ts"
+  },
+  "dependencies": {
+    "kafkajs": "^2.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.2"
+  }
+}

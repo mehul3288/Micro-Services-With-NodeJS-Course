@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { app } from "./app";
-import { natsWrapper } from "./nats-wrapper";
-import { registerGracefulShutdown } from "@mehul-mrtickets/common";
+import { kafkaWrapper } from "./kafka-wrapper";
+import { registerGracefulShutdown, ensureTopics, EventConsumer } from "@mehul-mrtickets/common";
 import { OrderCancelledListener } from "./events/listeners/order-cancelled-listener";
 import { OrderCreatedListener } from "./events/listeners/order-created-listener";
 
@@ -12,22 +12,28 @@ const start = async () => {
     if (!process.env.MONGO_URI) {
         throw new Error("MONGO_URI not defined");
     }
-    if (!process.env.NATS_CLUSTER_ID) {
-        throw new Error("NATS_CLUSTER_ID not defined");
+    if (!process.env.STRIPE_KEY) {
+        throw new Error("STRIPE_KEY not defined");
     }
-    if (!process.env.NATS_CLIENT_ID) {
-        throw new Error("NATS_CLIENT_ID not defined");
+    if (!process.env.KAFKA_BROKERS) {
+        throw new Error("KAFKA_BROKERS not defined");
     }
-    if (!process.env.NATS_URL) {
-        throw new Error("NATS_URL not defined");
+    if (!process.env.KAFKA_CLIENT_ID) {
+        throw new Error("KAFKA_CLIENT_ID not defined");
     }
+
     try {
-        await natsWrapper.connect(process.env.NATS_CLUSTER_ID, process.env.NATS_CLIENT_ID, process.env.NATS_URL);
+        const brokers = process.env.KAFKA_BROKERS.split(",");
+        await kafkaWrapper.connect(process.env.KAFKA_CLIENT_ID, brokers);
+        await ensureTopics(kafkaWrapper.kafka);
+
+        const consumer = new EventConsumer(kafkaWrapper.kafka, "payments-service");
+        consumer.register(new OrderCreatedListener());
+        consumer.register(new OrderCancelledListener());
+        await consumer.start();
+
         await mongoose.connect(process.env.MONGO_URI);
         console.log("Connected to Mongo!!!");
-
-        new OrderCancelledListener(natsWrapper.client).listen();
-        new OrderCreatedListener(natsWrapper.client).listen();
 
         const server = app.listen(3000, () => {
             console.log("Server is running at port 3000!!!!");
@@ -35,11 +41,14 @@ const start = async () => {
 
         registerGracefulShutdown(server, [
             async () => {
-                natsWrapper.client.close();
+                await consumer.disconnect();
+            },
+            async () => {
+                await kafkaWrapper.disconnect();
             },
             async () => {
                 await mongoose.disconnect();
-            }
+            },
         ]);
     } catch (e) {
         console.error("Failed to start payments service:", e);

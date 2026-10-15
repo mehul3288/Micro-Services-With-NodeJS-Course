@@ -291,12 +291,12 @@ Record in `results/phase-03-kafka.md`.
 
 ## 11. Checklist
 
-- [ ] Concept lesson written in `fixes/lessons/03-kafka-and-event-streaming.md`, taught & discussed in detail, and explicit go-ahead signal received from developer
-- [ ] common 2.0.0: Kafka publisher, listener, consumer, topics, `ensureTopics`
-- [ ] Kafka StatefulSet (KRaft) running, NATS removed
-- [ ] All services migrated (wrapper, publishers with partition keys, listeners, index.ts, mocks)
-- [ ] Defensive check in tickets `OrderCancelledListener`
-- [ ] DLQ working + `tools/dlq-replay` script
-- [ ] All tests updated and passing
-- [ ] Verification table complete, results recorded
-- [ ] `notes/03-kafka-partitioning-and-dlq.md` written
+- [x] Concept lesson written in `fixes/lessons/03-kafka-and-event-streaming.md`, taught & discussed in detail, and explicit go-ahead signal received from developer
+- [x] common 2.0.0: Kafka publisher, listener, consumer, topics, `ensureTopics`
+- [x] Kafka StatefulSet (KRaft) running, NATS removed
+- [x] All services migrated (wrapper, publishers with partition keys, listeners, index.ts, mocks)
+- [x] Defensive check in tickets `OrderCancelledListener`
+- [x] DLQ working + `tools/dlq-replay` script
+- [x] All tests updated and passing
+- [x] Verification table complete, results recorded
+- [x] `notes/03-kafka-partitioning-and-dlq.md` written

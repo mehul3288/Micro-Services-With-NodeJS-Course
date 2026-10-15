@@ -1,4 +1,3 @@
-import { Message, Stan } from "node-nats-streaming";
 import { Subjects } from "./subjects";
 
 interface Event {
@@ -6,51 +5,12 @@ interface Event {
     data: any;
 }
 
+export interface EventMetadata {
+    eventId: string;
+    occurredAt: string;
+}
+
 export abstract class Listener<T extends Event> {
     abstract subject: T["subject"];
-    abstract queueGroupName: string;
-    abstract onMessage(data: T["data"], msg: Message): void | Promise<void>;
-    protected ackWait = 5 * 1000;
-    protected client: Stan;
-
-    constructor(client: Stan) {
-        this.client = client;
-    }
-
-    subscriptionOptions() {
-        return this.client.subscriptionOptions()
-            .setDeliverAllAvailable()
-            .setManualAckMode(true)
-            .setAckWait(this.ackWait)
-            .setDurableName(this.queueGroupName);
-    }
-
-    listen() {
-        const subscriptions = this.client.subscribe(
-            this.subject,
-            this.queueGroupName,
-            this.subscriptionOptions()
-        );
-
-        subscriptions.on("message", async (msg: Message) => {
-            console.log(
-                `Message received: ${this.subject} / ${this.queueGroupName}`
-            );
-
-            try {
-                const parsedData = this.parseMessage(msg);
-                await this.onMessage(parsedData, msg);
-            } catch (err) {
-                console.error(`Error processing message for ${this.subject}:`, err);
-                // Do not ack: NATS Streaming will redeliver the message after ackWait expires
-            }
-        });
-    }
-
-    parseMessage(msg: Message) {
-        const data = msg.getData();
-        return typeof data === "string"
-            ? JSON.parse(data)
-            : JSON.parse(data.toString("utf-8"));
-    }
+    abstract onMessage(data: T["data"], metadata: EventMetadata): Promise<void>;
 }

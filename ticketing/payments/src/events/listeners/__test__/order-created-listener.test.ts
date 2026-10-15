@@ -1,13 +1,10 @@
-import { OrderCreatedEvent, OrderStatus } from "@mehul-mrtickets/common";
-import { Message } from "node-nats-streaming";
-
+import { EventMetadata, OrderCreatedEvent, OrderStatus } from "@mehul-mrtickets/common";
 import { Order } from "../../../models/order";
 import { OrderCreatedListener } from "../order-created-listener";
-import { natsWrapper } from "../../../nats-wrapper";
 import mongoose from "mongoose";
 
 const setup = async () => {
-    const listener = new OrderCreatedListener(natsWrapper.client);
+    const listener = new OrderCreatedListener();
 
     const data: OrderCreatedEvent["data"] = {
         id: new mongoose.Types.ObjectId().toHexString(),
@@ -17,22 +14,22 @@ const setup = async () => {
         expiresAt: new Date().toISOString(),
         ticket: {
             id: new mongoose.Types.ObjectId().toHexString(),
-            price: 20
-        }
+            price: 20,
+        },
     };
 
-    // @ts-ignore
-    const msg: Message = {
-        ack: jest.fn()
+    const metadata: EventMetadata = {
+        eventId: "test-event-id",
+        occurredAt: new Date().toISOString(),
     };
 
-    return { listener, data, msg };
+    return { listener, data, metadata };
 };
 
 it("replicates the order", async () => {
-    const { listener, data, msg } = await setup();
+    const { listener, data, metadata } = await setup();
 
-    await listener.onMessage(data, msg);
+    await listener.onMessage(data, metadata);
 
     const order = await Order.findById(data.id);
 
@@ -43,10 +40,8 @@ it("replicates the order", async () => {
     expect(order!.status).toEqual(data.status);
 });
 
-it("acks the message", async () => {
-    const { listener, data, msg } = await setup();
+it("resolves without error upon successful processing", async () => {
+    const { listener, data, metadata } = await setup();
 
-    await listener.onMessage(data, msg);
-
-    expect(msg.ack).toHaveBeenCalled();
+    await expect(listener.onMessage(data, metadata)).resolves.not.toThrow();
 });

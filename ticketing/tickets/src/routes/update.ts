@@ -3,7 +3,7 @@ import { Ticket } from "../models/ticket";
 import { body } from "express-validator";
 import { BadRequestError, NotAuthorizedError, NotFoundError, requireAuth, validateRequest } from "@mehul-mrtickets/common";
 import { TicketUpdatedPublisher } from "../events/publishers/ticket-updated-publisher";
-import { natsWrapper } from "../nats-wrapper";
+import { kafkaWrapper } from "../kafka-wrapper";
 
 const router = express.Router();
 
@@ -26,7 +26,7 @@ router.put("/api/tickets/:id", requireAuth, [body("title").notEmpty().withMessag
         price: req.body.price
     })
     await ticket.save();
-    await new TicketUpdatedPublisher(natsWrapper.client).publish({
+    await new TicketUpdatedPublisher(kafkaWrapper.producer).publish({
         id: ticket.id,
         title: ticket.title,
         price: ticket.price,

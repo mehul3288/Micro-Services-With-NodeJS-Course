@@ -12,7 +12,7 @@ declare global {
 let mongo: MongoMemoryServer;
 jest.setTimeout(30000);
 
-jest.mock("../nats-wrapper");
+jest.mock("../kafka-wrapper");
 
 beforeAll(async () => {
     process.env.JWT_KEY = "asdf";

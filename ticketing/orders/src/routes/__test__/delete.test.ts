@@ -3,7 +3,7 @@ import { app } from "../../app";
 import { Ticket } from "../../models/ticket";
 import { Order, OrderStatus } from "../../models/order";
 import mongoose from "mongoose";
-import { natsWrapper } from "../../nats-wrapper";
+import { kafkaWrapper } from "../../kafka-wrapper";
 
 it("returns 404 if the order is not found", async () => {
     const id = new mongoose.Types.ObjectId().toHexString();
@@ -67,7 +67,7 @@ it("emits an order cancelled event", async () => {
         .set("Cookie", user)
         .expect(204);
 
-    expect(natsWrapper.client.publish).toHaveBeenCalled();
+    expect(kafkaWrapper.producer.send).toHaveBeenCalled();
 });
 
 it("rejects cancellation of an already completed order with 400", async () => {
@@ -118,7 +118,7 @@ it("is idempotent when cancelling an already cancelled order", async () => {
         .expect(204);
 
     // Clear publish mock
-    (natsWrapper.client.publish as jest.Mock).mockClear();
+    (kafkaWrapper.producer.send as jest.Mock).mockClear();
 
     // Second cancel -> 204 without republishing
     await request(app)
@@ -126,5 +126,5 @@ it("is idempotent when cancelling an already cancelled order", async () => {
         .set("Cookie", user)
         .expect(204);
 
-    expect(natsWrapper.client.publish).not.toHaveBeenCalled();
+    expect(kafkaWrapper.producer.send).not.toHaveBeenCalled();
 });

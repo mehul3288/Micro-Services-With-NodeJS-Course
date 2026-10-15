@@ -1,7 +1,7 @@
 import request from "supertest"
 import { app } from "../../app"
 import { Ticket } from "../../models/ticket";
-import { natsWrapper } from "../../nats-wrapper";
+import { kafkaWrapper } from "../../kafka-wrapper";
 
 
 
@@ -103,8 +103,5 @@ it("publishes an event", async () => {
             title,
             price
         }).expect(201)
-
-    console.log(natsWrapper);
-
-    expect(natsWrapper.client.publish).toHaveBeenCalled();
+    expect(kafkaWrapper.producer.send).toHaveBeenCalled();
 })

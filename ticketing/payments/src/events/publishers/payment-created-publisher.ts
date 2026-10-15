@@ -1,5 +1,8 @@
 import { Subjects, Publisher, PaymentCreatedEvent } from "@mehul-mrtickets/common";
 
 export class PaymentCreatedPublisher extends Publisher<PaymentCreatedEvent> {
-    subject: Subjects.PaymentCreated = Subjects.PaymentCreated;
+    readonly subject = Subjects.PaymentCreated;
+    partitionKey(data: PaymentCreatedEvent["data"]): string {
+        return data.orderId;
+    }
 }

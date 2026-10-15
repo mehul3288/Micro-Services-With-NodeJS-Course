@@ -3,7 +3,7 @@ import request from "supertest";
 import { app } from "../../app";
 import { Ticket } from "../../models/ticket";
 import { Order, OrderStatus } from "../../models/order";
-import { natsWrapper } from "../../nats-wrapper";
+import { kafkaWrapper } from "../../kafka-wrapper";
 
 it("returns an error if the ticket doesn't exist", async () => {
     const ticketId = new mongoose.Types.ObjectId();
@@ -77,7 +77,7 @@ it("emits an order created event", async () => {
         })
         .expect(201);
 
-    expect(natsWrapper.client.publish).toHaveBeenCalled();
+    expect(kafkaWrapper.producer.send).toHaveBeenCalled();
 });
 
 it("handles concurrent reservation requests so only one succeeds", async () => {

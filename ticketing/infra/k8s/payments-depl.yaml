@@ -29,11 +29,9 @@ spec:
                 secretKeyRef:
                   name: stripe-secret
                   key: STRIPE_KEY
-            - name: NATS_URL
-              value: "http://nats-srv:4222"
-            - name: NATS_CLUSTER_ID
-              value: ticketing
-            - name: NATS_CLIENT_ID
+            - name: KAFKA_BROKERS
+              value: "kafka-0.kafka-srv:9092"
+            - name: KAFKA_CLIENT_ID
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name

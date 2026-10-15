@@ -1,4 +1,4 @@
-//Re-export stuff from errors and middlewares
+// Re-export stuff from errors and middlewares
 export * from "./errors/bad-request-error";
 export * from "./errors/custom-error";
 export * from "./errors/not-authorized-error";
@@ -14,10 +14,13 @@ export * from "./middlewares/health-router";
 export * from "./middlewares/shutdown";
 
 export * from "./events/subjects";
+export * from "./events/topics";
+export * from "./events/ensure-topics";
 export * from "./events/ticket-created-event";
 export * from "./events/ticket-updated-event";
 export * from "./events/base-listener";
 export * from "./events/base-publisher";
+export * from "./events/event-consumer";
 export * from "./events/types/order-status";
 export * from "./events/order-created-event";
 export * from "./events/order-cancelled-event";

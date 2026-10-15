@@ -1,12 +1,12 @@
 import mongoose from "mongoose";
 import { Ticket } from "../../../models/ticket";
-import { natsWrapper } from "../../../nats-wrapper";
+import { kafkaWrapper } from "../../../kafka-wrapper";
 import { ExpirationCompleteListener } from "../expiration-complete-listener";
-import { ExpirationCompleteEvent, OrderStatus } from "@mehul-mrtickets/common";
+import { EventMetadata, ExpirationCompleteEvent, OrderStatus } from "@mehul-mrtickets/common";
 import { Order } from "../../../models/order";
 
 const setup = async () => {
-    const listener = new ExpirationCompleteListener(natsWrapper.client);
+    const listener = new ExpirationCompleteListener();
 
     const ticket = Ticket.build({
         id: new mongoose.Types.ObjectId().toHexString(),
@@ -19,7 +19,7 @@ const setup = async () => {
         userId: new mongoose.Types.ObjectId().toHexString(),
         status: OrderStatus.Created,
         ticket,
-        expiresAt: new Date()
+        expiresAt: new Date(),
     });
     await order.save();
 
@@ -30,9 +30,9 @@ const setup = async () => {
         orderId: order.id,
     };
 
-    //@ts-ignore
-    const msg: Message = {
-        ack: jest.fn(),
+    const metadata: EventMetadata = {
+        eventId: "test-event-id",
+        occurredAt: new Date().toISOString(),
     };
 
     return {
@@ -40,13 +40,13 @@ const setup = async () => {
         ticket,
         data,
         order,
-        msg
+        metadata,
     };
 };
 
 it("updates the order status to cancelled and releases the ticket", async () => {
-    const { listener, data, ticket, msg } = await setup();
-    await listener.onMessage(data, msg);
+    const { listener, data, ticket, metadata } = await setup();
+    await listener.onMessage(data, metadata);
 
     const updatedOrder = await Order.findById(data.orderId);
     expect(updatedOrder!.status).toEqual(OrderStatus.Cancelled);
@@ -55,16 +55,15 @@ it("updates the order status to cancelled and releases the ticket", async () => 
     expect(updatedTicket?.reservedBy).toBeNull();
 });
 
-it("emits an orderCancelled event", async () => {
-    const { listener, data, order, msg } = await setup();
-    await listener.onMessage(data, msg);
-    expect(natsWrapper.client.publish).toHaveBeenCalled();
-    const eventData = JSON.parse((natsWrapper.client.publish as jest.Mock).mock.calls[0][1]);
-    expect(eventData.id).toEqual(order.id);
-});
+it("emits an orderCancelled event with ticket.id partition key", async () => {
+    const { listener, data, order, ticket, metadata } = await setup();
+    await listener.onMessage(data, metadata);
 
-it("acks the message", async () => {
-    const { listener, data, msg } = await setup();
-    await listener.onMessage(data, msg);
-    expect(msg.ack).toHaveBeenCalled();
+    expect(kafkaWrapper.producer.send).toHaveBeenCalled();
+    const sendCall = (kafkaWrapper.producer.send as jest.Mock).mock.calls[0][0];
+    const message = sendCall.messages[0];
+    const eventData = JSON.parse(message.value);
+
+    expect(eventData.id).toEqual(order.id);
+    expect(message.key).toEqual(ticket.id);
 });

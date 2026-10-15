@@ -3,7 +3,7 @@ import { json } from "body-parser";
 import mongoose from "mongoose";
 import { currentUser, errorHandler, NotFoundError, healthRouter, shutdownState } from "@mehul-mrtickets/common";
 import cookieSession from "cookie-session";
-import { natsWrapper } from "./nats-wrapper";
+import { kafkaWrapper } from "./kafka-wrapper";
 import { createPaymentRouter } from "./routes/new";
 
 const app = express();
@@ -16,7 +16,7 @@ app.use(cookieSession({
 
 app.use(healthRouter([
     () => mongoose.connection.readyState === 1,
-    () => natsWrapper.isConnected,
+    () => kafkaWrapper.isConnected,
     () => !shutdownState.isShuttingDown
 ]));
 

@@ -1,45 +1,40 @@
-import { TicketCreatedEvent } from "@mehul-mrtickets/common";
-import { TicketCreatedListener } from "../ticket-created-listener"
-import { natsWrapper } from "../../../nats-wrapper";
+import { EventMetadata, TicketCreatedEvent } from "@mehul-mrtickets/common";
+import { TicketCreatedListener } from "../ticket-created-listener";
 import mongoose from "mongoose";
-import { Message } from "node-nats-streaming";
 import { Ticket } from "../../../models/ticket";
 
 const setup = () => {
-    const listener = new TicketCreatedListener(natsWrapper.client);
-    // create an instance of the listener
-    const data: TicketCreatedEvent['data'] = {
+    const listener = new TicketCreatedListener();
+
+    const data: TicketCreatedEvent["data"] = {
         id: new mongoose.Types.ObjectId().toHexString(),
-        title: 'concert',
+        title: "concert",
         price: 10,
         userId: new mongoose.Types.ObjectId().toHexString(),
-        version: 0
-    }
-    // create a fake data event
-    //@ts-ignore
-    const msg: Message = {
-        ack: jest.fn()
-    }
-    // create a fake message object
-    return { msg, data, listener };
-}
+        version: 0,
+    };
+
+    const metadata: EventMetadata = {
+        eventId: "test-event-id",
+        occurredAt: new Date().toISOString(),
+    };
+
+    return { metadata, data, listener };
+};
 
 it("creates and saves a ticket", async () => {
-    const { listener, data, msg } = setup();
-    // call the onMessage function with the data object and message object
-    await listener.onMessage(data, msg);
-    // write assertions to ensure that a ticket was created
+    const { listener, data, metadata } = setup();
+
+    await listener.onMessage(data, metadata);
+
     const ticket = await Ticket.findById(data.id);
     expect(ticket).toBeDefined();
     expect(ticket!.title).toEqual(data.title);
     expect(ticket!.price).toEqual(data.price);
-})
+});
 
-it("acks the message", async () => {
-    const { listener, data, msg } = setup();
-    // call the onMessage function with the data object and message object
-    await listener.onMessage(data, msg);
-    // Write assertions to make sure ack function was called
-    expect(msg.ack).toHaveBeenCalled();
-})
+it("resolves successfully when message is processed", async () => {
+    const { listener, data, metadata } = setup();
 
+    await expect(listener.onMessage(data, metadata)).resolves.not.toThrow();
+});

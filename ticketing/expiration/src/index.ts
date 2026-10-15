@@ -1,22 +1,27 @@
 import { app } from "./app";
 import { OrderCreatedListener } from "./events/listeners/order-created-listener";
-import { natsWrapper } from "./nats-wrapper";
-import { registerGracefulShutdown } from "@mehul-mrtickets/common";
+import { kafkaWrapper } from "./kafka-wrapper";
+import { registerGracefulShutdown, ensureTopics, EventConsumer } from "@mehul-mrtickets/common";
 
 const start = async () => {
-    if (!process.env.NATS_CLUSTER_ID) {
-        throw new Error("NATS_CLUSTER_ID not defined");
+    if (!process.env.KAFKA_BROKERS) {
+        throw new Error("KAFKA_BROKERS not defined");
     }
-    if (!process.env.NATS_CLIENT_ID) {
-        throw new Error("NATS_CLIENT_ID not defined");
+    if (!process.env.KAFKA_CLIENT_ID) {
+        throw new Error("KAFKA_CLIENT_ID not defined");
     }
-    if (!process.env.NATS_URL) {
-        throw new Error("NATS_URL not defined");
+    if (!process.env.REDIS_HOST) {
+        throw new Error("REDIS_HOST not defined");
     }
-    try {
-        await natsWrapper.connect(process.env.NATS_CLUSTER_ID, process.env.NATS_CLIENT_ID, process.env.NATS_URL);
 
-        new OrderCreatedListener(natsWrapper.client).listen();
+    try {
+        const brokers = process.env.KAFKA_BROKERS.split(",");
+        await kafkaWrapper.connect(process.env.KAFKA_CLIENT_ID, brokers);
+        await ensureTopics(kafkaWrapper.kafka);
+
+        const consumer = new EventConsumer(kafkaWrapper.kafka, "expiration-service");
+        consumer.register(new OrderCreatedListener());
+        await consumer.start();
 
         const server = app.listen(3000, () => {
             console.log("Expiration health server listening on port 3000");
@@ -24,8 +29,11 @@ const start = async () => {
 
         registerGracefulShutdown(server, [
             async () => {
-                natsWrapper.client.close();
-            }
+                await consumer.disconnect();
+            },
+            async () => {
+                await kafkaWrapper.disconnect();
+            },
         ]);
     } catch (e) {
         console.error("Failed to start expiration service:", e);

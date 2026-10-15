@@ -3,7 +3,7 @@ import { BadRequestError, NotAuthorizedError, NotFoundError, OrderStatus, requir
 import { Order } from "../models/order";
 import { Ticket } from "../models/ticket";
 import { OrderCancelledPublisher } from "../events/publishers/order-cancelled-publisher";
-import { natsWrapper } from "../nats-wrapper";
+import { kafkaWrapper } from "../kafka-wrapper";
 
 const router = express.Router();
 
@@ -32,7 +32,7 @@ router.delete("/api/orders/:orderId", requireAuth, async (req: Request, res: Res
     order.status = OrderStatus.Cancelled;
     await order.save();
 
-    await new OrderCancelledPublisher(natsWrapper.client).publish({
+    await new OrderCancelledPublisher(kafkaWrapper.producer).publish({
         id: order.id,
         version: order.version,
         ticket: {

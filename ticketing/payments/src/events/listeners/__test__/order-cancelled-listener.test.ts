@@ -1,21 +1,18 @@
-import { OrderCancelledEvent, OrderStatus } from "@mehul-mrtickets/common";
-import { Message } from "node-nats-streaming";
-
+import { EventMetadata, OrderCancelledEvent, OrderStatus } from "@mehul-mrtickets/common";
 import { Order } from "../../../models/order";
 import { OrderCancelledListener } from "../order-cancelled-listener";
-import { natsWrapper } from "../../../nats-wrapper";
 import mongoose from "mongoose";
 
 const setup = async () => {
-    const listener = new OrderCancelledListener(natsWrapper.client);
+    const listener = new OrderCancelledListener();
 
     const order = Order.build({
         id: new mongoose.Types.ObjectId().toHexString(),
         version: 0,
         userId: new mongoose.Types.ObjectId().toHexString(),
         price: 20,
-        status: OrderStatus.Created
-    })
+        status: OrderStatus.Created,
+    });
 
     await order.save();
 
@@ -23,22 +20,22 @@ const setup = async () => {
         id: order._id.toHexString(),
         version: 1,
         ticket: {
-            id: new mongoose.Types.ObjectId().toHexString()
-        }
+            id: new mongoose.Types.ObjectId().toHexString(),
+        },
     };
 
-    // @ts-ignore
-    const msg: Message = {
-        ack: jest.fn()
+    const metadata: EventMetadata = {
+        eventId: "test-event-id",
+        occurredAt: new Date().toISOString(),
     };
 
-    return { listener, data, msg, order };
+    return { listener, data, metadata, order };
 };
 
 it("marks the order as cancelled", async () => {
-    const { listener, data, order, msg } = await setup();
+    const { listener, data, order, metadata } = await setup();
 
-    await listener.onMessage(data, msg);
+    await listener.onMessage(data, metadata);
 
     const updatedOrder = await Order.findById(order._id.toHexString());
 
@@ -46,10 +43,8 @@ it("marks the order as cancelled", async () => {
     expect(updatedOrder!.status).toEqual(OrderStatus.Cancelled);
 });
 
-it("acks the message", async () => {
-    const { listener, data, msg } = await setup();
+it("resolves without error upon successful processing", async () => {
+    const { listener, data, metadata } = await setup();
 
-    await listener.onMessage(data, msg);
-
-    expect(msg.ack).toHaveBeenCalled();
+    await expect(listener.onMessage(data, metadata)).resolves.not.toThrow();
 });
