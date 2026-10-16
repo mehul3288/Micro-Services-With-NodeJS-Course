@@ -13,6 +13,7 @@ export class OrderCreatedListener extends Listener<OrderCreatedEvent> {
             userId,
             price: ticket.price,
             status,
+            expiresAt: new Date(data.expiresAt),
         });
 
         await order.save({ session: metadata.session });

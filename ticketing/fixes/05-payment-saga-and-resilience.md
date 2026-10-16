@@ -259,15 +259,15 @@ Record in `results/phase-05-saga-resilience.md`.
 
 ## 11. Checklist
 
-- [ ] Concept lesson written in `fixes/lessons/05-sagas-compensations-and-circuit-breakers.md`, taught & discussed in detail, and explicit go-ahead signal received from developer
-- [ ] `order-transitions.ts` + used everywhere status changes
-- [ ] `services/cancel-order.ts` extracted; delete route + expiration listener use it
-- [ ] PaymentCreatedListener compensation → `RefundRequested`
-- [ ] Payments: `expiresAt` on replica, 5s guard, `RefundRequestedListener`, `Payment.status`
-- [ ] `RefundRequested` / `PaymentRefunded` events in common
-- [ ] Expiry sweeper with lease; `ORDER_EXPIRATION_SECONDS` env var
-- [ ] Circuit breaker for charge + refund, `ServiceUnavailableError` in common
-- [ ] Client shows refunded state on the order page
+- [x] Concept lesson written in `fixes/lessons/05-sagas-compensations-and-circuit-breakers.md`, taught & discussed in detail, and explicit go-ahead signal received from developer
+- [x] `order-transitions.ts` + used everywhere status changes
+- [x] `services/cancel-order.ts` extracted; delete route + expiration listener use it
+- [x] PaymentCreatedListener compensation → `RefundRequested`
+- [x] Payments: `expiresAt` on replica, 5s guard, `RefundRequestedListener`, `Payment.status`
+- [x] `RefundRequested` / `PaymentRefunded` events in common
+- [x] Expiry sweeper with lease; `ORDER_EXPIRATION_SECONDS` env var
+- [x] Circuit breaker for charge + refund, `ServiceUnavailableError` in common
+- [x] Client shows refunded state on the order page
 - [ ] (Stretch) Stripe webhook reconciliation
-- [ ] Tests + verification complete, results recorded
-- [ ] `notes/05-sagas-and-resilience.md` written
+- [x] Tests + verification complete, results recorded
+- [x] `notes/05-sagas-and-resilience.md` written

@@ -1,0 +1,7 @@
+node_modules/
+.next/
+build/
+.tmp-mongo/
+dist/
+*.log
+.DS_Store

@@ -11,7 +11,7 @@ interface OrderAttrs {
     ticket: TicketDoc
 }
 
-interface OrderDoc extends mongoose.Document {
+export interface OrderDoc extends mongoose.Document {
     id: string;
     userId: string;
     status: OrderStatus;

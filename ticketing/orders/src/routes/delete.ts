@@ -2,8 +2,8 @@ import express, { Request, Response } from "express";
 import { BadRequestError, NotAuthorizedError, NotFoundError, OrderStatus, requireAuth } from "@mehul-mrtickets/common";
 import mongoose from "mongoose";
 import { Order } from "../models/order";
-import { Ticket } from "../models/ticket";
-import { OrderCancelledPublisher } from "../events/publishers/order-cancelled-publisher";
+import { canTransition } from "../models/order-transitions";
+import { cancelOrder } from "../services/cancel-order";
 
 const router = express.Router();
 
@@ -17,29 +17,15 @@ router.delete("/api/orders/:orderId", requireAuth, async (req: Request, res: Res
         throw new NotAuthorizedError();
     }
 
-    if (order.status === OrderStatus.Complete) {
-        throw new BadRequestError("Cannot cancel a paid order");
-    }
-
-    // Idempotent: if already cancelled, return immediately without re-publishing
-    if (order.status === OrderStatus.Cancelled) {
-        return res.status(204).send(order);
+    if (!canTransition(order.status, OrderStatus.Cancelled)) {
+        if (order.status === OrderStatus.Cancelled) {
+            return res.status(204).send(order);
+        }
+        throw new BadRequestError("Cannot cancel an order in this status");
     }
 
     await mongoose.connection.transaction(async (session) => {
-        // Release the atomic ticket reservation
-        await Ticket.release(order.ticket.id, order.id, session);
-
-        order.status = OrderStatus.Cancelled;
-        await order.save({ session });
-
-        await new OrderCancelledPublisher().publish({
-            id: order.id,
-            version: order.version,
-            ticket: {
-                id: order.ticket.id,
-            },
-        }, session);
+        await cancelOrder(order, session);
     });
 
     res.status(204).send(order);

@@ -6,6 +6,7 @@ import { TicketCreatedListener } from "./events/listeners/ticket-created-listene
 import { TicketUpdatedListener } from "./events/listeners/ticket-updated-listener";
 import { ExpirationCompleteListener } from "./events/listeners/expiration-complete-listener";
 import { PaymentCreatedListener } from "./events/listeners/payment-created-listener";
+import { ExpireOrdersSweeper } from "./jobs/expire-orders-sweeper";
 
 const start = async () => {
     if (!process.env.JWT_KEY) {
@@ -45,11 +46,17 @@ const start = async () => {
         consumer.register(new PaymentCreatedListener());
         await consumer.start();
 
+        const sweeper = new ExpireOrdersSweeper(60000, 30000);
+        sweeper.start();
+
         const server = app.listen(3000, () => {
             console.log("Server is running at port 3000!!!!");
         });
 
         registerGracefulShutdown(server, [
+            async () => {
+                sweeper.stop();
+            },
             async () => {
                 await outboxRelay.stop();
             },

@@ -14,4 +14,6 @@ export const topicFor: Record<Subjects, Topics> = {
     [Subjects.OrderCancelled]: Topics.OrderEvents,
     [Subjects.PaymentCreated]: Topics.PaymentEvents,
     [Subjects.ExpirationComplete]: Topics.ExpirationEvents,
+    [Subjects.RefundRequested]: Topics.OrderEvents,
+    [Subjects.PaymentRefunded]: Topics.PaymentEvents,
 };

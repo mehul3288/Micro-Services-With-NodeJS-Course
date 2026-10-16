@@ -1,11 +1,18 @@
 import express, { Request, Response } from "express";
 import { body } from "express-validator";
-import { requireAuth, validateRequest, BadRequestError, NotFoundError, NotAuthorizedError, OrderStatus } from "@mehul-mrtickets/common";
+import {
+    requireAuth,
+    validateRequest,
+    BadRequestError,
+    NotFoundError,
+    NotAuthorizedError,
+    OrderStatus,
+} from "@mehul-mrtickets/common";
 import mongoose from "mongoose";
 import { Order } from "../models/order";
-import { stripe } from "../stripe";
 import { Payment } from "../models/payment";
 import { PaymentCreatedPublisher } from "../events/publishers/payment-created-publisher";
+import { chargeCard } from "../services/stripe-client";
 
 const router = express.Router();
 
@@ -17,7 +24,7 @@ router.post(
         body("orderId")
             .notEmpty()
             .isMongoId()
-            .withMessage("orderId must be a valid Mongo ID")
+            .withMessage("orderId must be a valid Mongo ID"),
     ],
     validateRequest,
     async (req: Request, res: Response) => {
@@ -37,22 +44,25 @@ router.post(
             throw new BadRequestError("Cannot pay for a cancelled order");
         }
 
+        // 5-second pre-expiry guard: reject if expired or expiring within 5000ms
+        if (order.expiresAt && order.expiresAt.getTime() - Date.now() < 5000) {
+            throw new BadRequestError("Order has expired or is about to expire, please re-order");
+        }
+
         // Layer 1: Application-level check
         const existingPayment = await Payment.findOne({ orderId });
         if (existingPayment) {
             throw new BadRequestError("Order is already paid");
         }
 
-        // Layer 2: Payment Provider Idempotency Key
-        const charge = await stripe.charges.create(
+        // Layer 2: Payment Provider Idempotency Key wrapped in Circuit Breaker
+        const charge = await chargeCard(
             {
                 currency: "usd",
                 amount: Math.round(order.price * 100),
                 source: token,
             },
-            {
-                idempotencyKey: `charge-${orderId}`
-            }
+            `charge-${orderId}`
         );
 
         // Layer 3: Database Unique Constraint on orderId + Transactional Outbox
@@ -66,11 +76,14 @@ router.post(
 
                 await payment.save({ session });
 
-                await new PaymentCreatedPublisher().publish({
-                    id: payment.id,
-                    orderId: payment.orderId,
-                    stripeId: payment.stripeId,
-                }, session);
+                await new PaymentCreatedPublisher().publish(
+                    {
+                        id: payment.id,
+                        orderId: payment.orderId,
+                        stripeId: payment.stripeId,
+                    },
+                    session
+                );
 
                 paymentDoc = payment;
             });

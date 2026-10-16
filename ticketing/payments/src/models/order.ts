@@ -7,6 +7,7 @@ interface OrderAttrs {
     userId: string;
     price: number;
     status: OrderStatus;
+    expiresAt: Date;
 }
 
 interface OrderDoc extends mongoose.Document {
@@ -15,41 +16,47 @@ interface OrderDoc extends mongoose.Document {
     userId: string;
     price: number;
     status: OrderStatus;
+    expiresAt: Date;
 }
 
 interface OrderModel extends mongoose.Model<OrderDoc> {
     build(attrs: OrderAttrs): OrderDoc;
 }
 
-const orderSchema = new Schema({
-    userId: {
-        type: String,
-        required: true
+const orderSchema = new Schema(
+    {
+        userId: {
+            type: String,
+            required: true,
+        },
+        price: {
+            type: Number,
+            required: true,
+        },
+        status: {
+            type: String,
+            required: true,
+        },
+        expiresAt: {
+            type: Date,
+            required: true,
+        },
     },
-    price: {
-        type: Number,
-        required: true
-    },
-    status: {
-        type: String,
-        required: true,
-        // enum: Object.values(OrderStatus),
-        // default: OrderStatus.Created
+    {
+        toJSON: {
+            transform(doc, ret: any) {
+                ret.id = ret._id;
+                delete ret._id;
+                delete ret.__v;
+            },
+        },
     }
-}, {
-    toJSON: {
-        transform(doc, ret: any) {
-            ret.id = ret._id;
-            delete ret._id;
-            delete ret.__v;
-        }
-    }
-})
+);
 
 orderSchema.set("versionKey", "version");
 orderSchema.pre("save", function () {
     this.$where = {
-        version: this.get("version")
+        version: this.get("version"),
     };
     this.increment();
 });
@@ -60,9 +67,10 @@ orderSchema.statics.build = (attrs: OrderAttrs) => {
         version: attrs.version,
         userId: attrs.userId,
         price: attrs.price,
-        status: attrs.status
-    })
-}
+        status: attrs.status,
+        expiresAt: attrs.expiresAt,
+    });
+};
 
 const Order = mongoose.model<OrderDoc, OrderModel>("Order", orderSchema);
 export { Order };

@@ -14,7 +14,7 @@ it("returns a 404 when an order that does not exist is purchased", async () => {
         .set("Cookie", global.signin())
         .send({
             token: "alskjdfa",
-            orderId: new mongoose.Types.ObjectId().toHexString()
+            orderId: new mongoose.Types.ObjectId().toHexString(),
         })
         .expect(404);
 });
@@ -25,7 +25,7 @@ it("returns a 400 when orderId is not a valid Mongo ID", async () => {
         .set("Cookie", global.signin())
         .send({
             token: "alskjdfa",
-            orderId: "invalid-id-123"
+            orderId: "invalid-id-123",
         })
         .expect(400);
 });
@@ -36,7 +36,8 @@ it("returns a 401 when the order does not belong to the user", async () => {
         version: 0,
         userId: new mongoose.Types.ObjectId().toHexString(),
         price: 20,
-        status: OrderStatus.Created
+        status: OrderStatus.Created,
+        expiresAt: new Date(Date.now() + 60000),
     });
 
     await order.save();
@@ -46,7 +47,7 @@ it("returns a 401 when the order does not belong to the user", async () => {
         .set("Cookie", global.signin())
         .send({
             token: "alskdfjl",
-            orderId: order.id
+            orderId: order.id,
         })
         .expect(401);
 });
@@ -59,7 +60,8 @@ it("returns a 400 when the order is already cancelled", async () => {
         version: 0,
         userId: userId,
         price: 20,
-        status: OrderStatus.Cancelled
+        status: OrderStatus.Cancelled,
+        expiresAt: new Date(Date.now() + 60000),
     });
 
     await order.save();
@@ -69,9 +71,35 @@ it("returns a 400 when the order is already cancelled", async () => {
         .set("Cookie", cookie)
         .send({
             token: "alskdfjl",
-            orderId: order.id
+            orderId: order.id,
         })
         .expect(400);
+});
+
+it("returns 400 when order expires within 5 seconds (< 5s pre-expiry guard)", async () => {
+    const userId = new mongoose.Types.ObjectId().toHexString();
+    const cookie = global.signin(userId);
+    const order = Order.build({
+        id: new mongoose.Types.ObjectId().toHexString(),
+        version: 0,
+        userId: userId,
+        price: 20,
+        status: OrderStatus.Created,
+        // Only 3 seconds left (< 5s)
+        expiresAt: new Date(Date.now() + 3000),
+    });
+    await order.save();
+
+    const res = await request(app)
+        .post("/api/payments")
+        .set("Cookie", cookie)
+        .send({
+            token: "tok_visa",
+            orderId: order.id,
+        })
+        .expect(400);
+
+    expect(res.body.errors[0].message).toMatch(/expired or is about to expire/i);
 });
 
 it("returns 201 with valid inputs and passes idempotency key to Stripe", async () => {
@@ -82,7 +110,8 @@ it("returns 201 with valid inputs and passes idempotency key to Stripe", async (
         version: 0,
         userId: userId,
         price: 19.99,
-        status: OrderStatus.Created
+        status: OrderStatus.Created,
+        expiresAt: new Date(Date.now() + 60000),
     });
 
     await order.save();
@@ -92,7 +121,7 @@ it("returns 201 with valid inputs and passes idempotency key to Stripe", async (
         .set("Cookie", cookie)
         .send({
             token: "tok_visa",
-            orderId: order.id
+            orderId: order.id,
         })
         .expect(201);
 
@@ -118,7 +147,8 @@ it("returns 400 when an already paid order is charged a second time", async () =
         version: 0,
         userId: userId,
         price: 20,
-        status: OrderStatus.Created
+        status: OrderStatus.Created,
+        expiresAt: new Date(Date.now() + 60000),
     });
 
     await order.save();
@@ -129,7 +159,7 @@ it("returns 400 when an already paid order is charged a second time", async () =
         .set("Cookie", cookie)
         .send({
             token: "tok_visa",
-            orderId: order.id
+            orderId: order.id,
         })
         .expect(201);
 
@@ -139,7 +169,7 @@ it("returns 400 when an already paid order is charged a second time", async () =
         .set("Cookie", cookie)
         .send({
             token: "tok_visa",
-            orderId: order.id
+            orderId: order.id,
         })
         .expect(400);
 
@@ -154,7 +184,8 @@ it("writes a payment created outbox event", async () => {
         version: 0,
         userId: userId,
         price: 20,
-        status: OrderStatus.Created
+        status: OrderStatus.Created,
+        expiresAt: new Date(Date.now() + 60000),
     });
     await order.save();
 
@@ -163,7 +194,7 @@ it("writes a payment created outbox event", async () => {
         .set("Cookie", cookie)
         .send({
             token: "tok_visa",
-            orderId: order.id
+            orderId: order.id,
         })
         .expect(201);
 

@@ -7,7 +7,13 @@ import { Order } from "../models/order";
 import { OrderCreatedPublisher } from "../events/publishers/order-created-publisher";
 
 const router = express.Router();
-const EXPIRATION_WINDOW_SECONDS = 1 * 60;
+const getExpirationWindowSeconds = (): number => {
+    const envVal = process.env.ORDER_EXPIRATION_SECONDS;
+    if (envVal && !isNaN(parseInt(envVal, 10))) {
+        return parseInt(envVal, 10);
+    }
+    return 60;
+};
 
 router.post(
     "/api/orders",
@@ -26,7 +32,7 @@ router.post(
         }
 
         const expiration = new Date();
-        expiration.setSeconds(expiration.getSeconds() + EXPIRATION_WINDOW_SECONDS);
+        expiration.setSeconds(expiration.getSeconds() + getExpirationWindowSeconds());
 
         let orderDoc: any;
 

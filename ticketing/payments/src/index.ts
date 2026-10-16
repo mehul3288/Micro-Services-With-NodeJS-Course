@@ -4,6 +4,7 @@ import { kafkaWrapper } from "./kafka-wrapper";
 import { registerGracefulShutdown, ensureTopics, EventConsumer, OutboxRelay } from "@mehul-mrtickets/common";
 import { OrderCancelledListener } from "./events/listeners/order-cancelled-listener";
 import { OrderCreatedListener } from "./events/listeners/order-created-listener";
+import { RefundRequestedListener } from "./events/listeners/refund-requested-listener";
 
 const start = async () => {
     if (!process.env.JWT_KEY) {
@@ -42,6 +43,7 @@ const start = async () => {
         });
         consumer.register(new OrderCreatedListener());
         consumer.register(new OrderCancelledListener());
+        consumer.register(new RefundRequestedListener());
         await consumer.start();
 
         const server = app.listen(3000, () => {
