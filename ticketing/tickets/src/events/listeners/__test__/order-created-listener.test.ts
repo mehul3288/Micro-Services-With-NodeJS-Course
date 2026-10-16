@@ -1,6 +1,5 @@
-import { EventMetadata, OrderCreatedEvent, OrderStatus } from "@mehul-mrtickets/common";
+import { EventMetadata, OrderCreatedEvent, OrderStatus, OutboxEvent } from "@mehul-mrtickets/common";
 import { Ticket } from "../../../models/ticket";
-import { kafkaWrapper } from "../../../kafka-wrapper";
 import { OrderCreatedListener } from "../order-created-listener";
 import mongoose from "mongoose";
 
@@ -45,17 +44,16 @@ it("reserves the ticket", async () => {
     expect(updatedTicket?.orderId).toEqual(data.id);
 });
 
-it("publishes a ticket updated event with partition key", async () => {
+it("writes a ticket updated outbox event with partition key", async () => {
     const { listener, ticket, data, metadata } = await setup();
 
     await listener.onMessage(data, metadata);
 
-    expect(kafkaWrapper.producer.send).toHaveBeenCalled();
+    const outboxEvents = await OutboxEvent.find({ eventType: "ticket:updated" });
+    expect(outboxEvents.length).toEqual(1);
+    expect(outboxEvents[0].topic).toEqual("ticket-events");
+    expect(outboxEvents[0].key).toEqual(ticket.id);
 
-    const sendCall = (kafkaWrapper.producer.send as jest.Mock).mock.calls[0][0];
-    const message = sendCall.messages[0];
-    const ticketUpdated = JSON.parse(message.value);
-
+    const ticketUpdated = JSON.parse(outboxEvents[0].payload);
     expect(ticketUpdated.orderId).toEqual(data.id);
-    expect(message.key).toEqual(ticket.id);
 });

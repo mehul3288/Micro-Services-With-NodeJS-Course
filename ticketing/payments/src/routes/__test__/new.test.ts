@@ -2,7 +2,7 @@ import request from "supertest";
 import { app } from "../../app";
 import mongoose from "mongoose";
 import { Order } from "../../models/order";
-import { OrderStatus } from "@mehul-mrtickets/common";
+import { OrderStatus, OutboxEvent, Subjects } from "@mehul-mrtickets/common";
 import { stripe } from "../../stripe";
 import { Payment } from "../../models/payment";
 
@@ -144,4 +144,32 @@ it("returns 400 when an already paid order is charged a second time", async () =
         .expect(400);
 
     expect(res.body.errors[0].message).toEqual("Order is already paid");
+});
+
+it("writes a payment created outbox event", async () => {
+    const userId = new mongoose.Types.ObjectId().toHexString();
+    const cookie = global.signin(userId);
+    const order = Order.build({
+        id: new mongoose.Types.ObjectId().toHexString(),
+        version: 0,
+        userId: userId,
+        price: 20,
+        status: OrderStatus.Created
+    });
+    await order.save();
+
+    await request(app)
+        .post("/api/payments")
+        .set("Cookie", cookie)
+        .send({
+            token: "tok_visa",
+            orderId: order.id
+        })
+        .expect(201);
+
+    const outboxEvents = await OutboxEvent.find({ eventType: Subjects.PaymentCreated });
+    expect(outboxEvents.length).toEqual(1);
+    expect(outboxEvents[0].key).toEqual(order.id);
+    const payload = JSON.parse(outboxEvents[0].payload);
+    expect(payload.orderId).toEqual(order.id);
 });

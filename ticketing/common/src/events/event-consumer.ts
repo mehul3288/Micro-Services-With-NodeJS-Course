@@ -1,18 +1,27 @@
 import { Consumer, Kafka, KafkaMessage, Producer } from "kafkajs";
+import { Connection } from "mongoose";
 import { Listener } from "./base-listener";
 import { Subjects } from "./subjects";
 import { topicFor } from "./topics";
+import { ProcessedEvent } from "./processed-event";
+
+export interface EventConsumerOptions {
+    deduplicate?: boolean;
+    connection?: Connection;
+}
 
 export class EventConsumer {
     private kafka: Kafka;
     private groupId: string;
     private consumer: Consumer;
     private dlqProducer: Producer;
+    private options?: EventConsumerOptions;
     private listeners = new Map<Subjects, Listener<any>>();
 
-    constructor(kafka: Kafka, groupId: string) {
+    constructor(kafka: Kafka, groupId: string, options?: EventConsumerOptions) {
         this.kafka = kafka;
         this.groupId = groupId;
+        this.options = options;
         this.consumer = this.kafka.consumer({ groupId: this.groupId });
         this.dlqProducer = this.kafka.producer({ idempotent: true, maxInFlightRequests: 1 });
     }
@@ -61,14 +70,43 @@ export class EventConsumer {
                     return;
                 }
 
+                // Deduplication fast-path check
+                if (this.options?.deduplicate && eventId) {
+                    const alreadyProcessed = await ProcessedEvent.findOne({
+                        eventId,
+                        consumerGroup: this.groupId,
+                    });
+                    if (alreadyProcessed) {
+                        console.log(`[${this.groupId}] Duplicate event ${eventId} (${eventType}) already processed. Skipping.`);
+                        return;
+                    }
+                }
+
                 const maxAttempts = 3;
                 let lastError: any;
 
                 for (let attempt = 1; attempt <= maxAttempts; attempt++) {
                     try {
-                        await listener.onMessage(data, { eventId, occurredAt });
-                        return; // Successfully processed
+                        if (this.options?.deduplicate && this.options?.connection && eventId) {
+                            // Execute inside a MongoDB transaction with atomic deduplication
+                            await this.options.connection.transaction(async (session) => {
+                                await ProcessedEvent.create(
+                                    [{ eventId, consumerGroup: this.groupId, processedAt: new Date() }],
+                                    { session }
+                                );
+                                await listener.onMessage(data, { eventId, occurredAt, session });
+                            });
+                        } else {
+                            await listener.onMessage(data, { eventId, occurredAt });
+                        }
+                        return; // Successfully processed (a susscessful return statement commits the offset for that paeticular event)
                     } catch (err: any) {
+                        // If duplicate key error occurred concurrently, skip safely
+                        if (err.code === 11000 || (err.message && err.message.includes("E11000"))) {
+                            console.log(`[${this.groupId}] Concurrent duplicate event ${eventId} (${eventType}) detected. Skipping.`);
+                            return;
+                        }
+
                         lastError = err;
                         console.error(
                             `[${this.groupId}] Attempt ${attempt}/${maxAttempts} failed for ${eventType} on ${topic} (partition ${partition}):`,

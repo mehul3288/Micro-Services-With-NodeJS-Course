@@ -1,6 +1,6 @@
-import { Subjects, Publisher, PaymentCreatedEvent } from "@mehul-mrtickets/common";
+import { Subjects, OutboxPublisher, PaymentCreatedEvent } from "@mehul-mrtickets/common";
 
-export class PaymentCreatedPublisher extends Publisher<PaymentCreatedEvent> {
+export class PaymentCreatedPublisher extends OutboxPublisher<PaymentCreatedEvent> {
     readonly subject = Subjects.PaymentCreated;
     partitionKey(data: PaymentCreatedEvent["data"]): string {
         return data.orderId;

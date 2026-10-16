@@ -1,11 +1,11 @@
 import express, { Request, Response } from "express";
 import { body } from "express-validator";
 import { requireAuth, validateRequest, BadRequestError, NotFoundError, NotAuthorizedError, OrderStatus } from "@mehul-mrtickets/common";
+import mongoose from "mongoose";
 import { Order } from "../models/order";
 import { stripe } from "../stripe";
 import { Payment } from "../models/payment";
 import { PaymentCreatedPublisher } from "../events/publishers/payment-created-publisher";
-import { kafkaWrapper } from "../kafka-wrapper";
 
 const router = express.Router();
 
@@ -55,14 +55,25 @@ router.post(
             }
         );
 
-        // Layer 3: Database Unique Constraint on orderId
-        const payment = Payment.build({
-            orderId: orderId,
-            stripeId: charge.id,
-        });
-
+        // Layer 3: Database Unique Constraint on orderId + Transactional Outbox
+        let paymentDoc: any;
         try {
-            await payment.save();
+            await mongoose.connection.transaction(async (session) => {
+                const payment = Payment.build({
+                    orderId: orderId,
+                    stripeId: charge.id,
+                });
+
+                await payment.save({ session });
+
+                await new PaymentCreatedPublisher().publish({
+                    id: payment.id,
+                    orderId: payment.orderId,
+                    stripeId: payment.stripeId,
+                }, session);
+
+                paymentDoc = payment;
+            });
         } catch (err: any) {
             if (err?.code === 11000) {
                 throw new BadRequestError("Order is already paid");
@@ -70,13 +81,7 @@ router.post(
             throw err;
         }
 
-        await new PaymentCreatedPublisher(kafkaWrapper.producer).publish({
-            id: payment.id,
-            orderId: payment.orderId,
-            stripeId: payment.stripeId,
-        });
-
-        res.status(201).send({ id: payment.id });
+        res.status(201).send({ id: paymentDoc.id });
     }
 );
 

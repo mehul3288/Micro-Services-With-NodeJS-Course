@@ -15,10 +15,10 @@ export interface TicketDoc extends mongoose.Document {
 }
 
 interface TicketModel extends mongoose.Model<TicketDoc> {
-    findByEvent(event: { id: string; version: number }): Promise<TicketDoc | null>;
+    findByEvent(event: { id: string; version: number }, session?: mongoose.ClientSession): Promise<TicketDoc | null>;
     build(attrs: TicketAttrs): TicketDoc;
-    reserve(ticketId: string, orderId: string): Promise<TicketDoc | null>;
-    release(ticketId: string, orderId: string): Promise<any>;
+    reserve(ticketId: string, orderId: string, session?: mongoose.ClientSession): Promise<TicketDoc | null>;
+    release(ticketId: string, orderId: string, session?: mongoose.ClientSession): Promise<any>;
 }
 
 const ticketSchema = new Schema<TicketDoc, TicketModel>({
@@ -53,27 +53,32 @@ ticketSchema.pre("save", function () {
     this.increment();
 });
 
-ticketSchema.statics.reserve = (ticketId: string, orderId: string) => {
+ticketSchema.statics.reserve = (ticketId: string, orderId: string, session?: mongoose.ClientSession) => {
     return Ticket.findOneAndUpdate(
         { _id: ticketId, reservedBy: null },
         { $set: { reservedBy: orderId } },
-        { returnDocument: "after" }
+        { returnDocument: "after", session }
     );
 };
 
-ticketSchema.statics.release = (ticketId: string, orderId: string) => {
+ticketSchema.statics.release = (ticketId: string, orderId: string, session?: mongoose.ClientSession) => {
     return Ticket.updateOne(
         { _id: ticketId, reservedBy: orderId },
-        { $set: { reservedBy: null } }
+        { $set: { reservedBy: null } },
+        { session }
     );
 };
 
-ticketSchema.statics.findByEvent = (event: { id: string; version: number }) => {
+ticketSchema.statics.findByEvent = (event: { id: string; version: number }, session?: mongoose.ClientSession) => {
     const { id, version } = event;
-    return Ticket.findOne({
+    const query = Ticket.findOne({
         _id: id,
         version: version - 1
     });
+    if (session) {
+        query.session(session);
+    }
+    return query;
 };
 
 ticketSchema.statics.build = (attrs: TicketAttrs) => {

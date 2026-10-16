@@ -15,6 +15,6 @@ export class OrderCreatedListener extends Listener<OrderCreatedEvent> {
             status,
         });
 
-        await order.save();
+        await order.save({ session: metadata.session });
     }
 }

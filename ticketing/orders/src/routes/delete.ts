@@ -1,9 +1,9 @@
 import express, { Request, Response } from "express";
 import { BadRequestError, NotAuthorizedError, NotFoundError, OrderStatus, requireAuth } from "@mehul-mrtickets/common";
+import mongoose from "mongoose";
 import { Order } from "../models/order";
 import { Ticket } from "../models/ticket";
 import { OrderCancelledPublisher } from "../events/publishers/order-cancelled-publisher";
-import { kafkaWrapper } from "../kafka-wrapper";
 
 const router = express.Router();
 
@@ -26,18 +26,20 @@ router.delete("/api/orders/:orderId", requireAuth, async (req: Request, res: Res
         return res.status(204).send(order);
     }
 
-    // Release the atomic ticket reservation
-    await Ticket.release(order.ticket.id, order.id);
+    await mongoose.connection.transaction(async (session) => {
+        // Release the atomic ticket reservation
+        await Ticket.release(order.ticket.id, order.id, session);
 
-    order.status = OrderStatus.Cancelled;
-    await order.save();
+        order.status = OrderStatus.Cancelled;
+        await order.save({ session });
 
-    await new OrderCancelledPublisher(kafkaWrapper.producer).publish({
-        id: order.id,
-        version: order.version,
-        ticket: {
-            id: order.ticket.id
-        }
+        await new OrderCancelledPublisher().publish({
+            id: order.id,
+            version: order.version,
+            ticket: {
+                id: order.ticket.id,
+            },
+        }, session);
     });
 
     res.status(204).send(order);

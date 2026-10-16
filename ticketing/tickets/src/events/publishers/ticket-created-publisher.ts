@@ -1,6 +1,6 @@
-import { Publisher, Subjects, TicketCreatedEvent } from "@mehul-mrtickets/common";
+import { OutboxPublisher, Subjects, TicketCreatedEvent } from "@mehul-mrtickets/common";
 
-export class TicketCreatedPublisher extends Publisher<TicketCreatedEvent> {
+export class TicketCreatedPublisher extends OutboxPublisher<TicketCreatedEvent> {
     readonly subject = Subjects.TicketCreated;
     partitionKey(data: TicketCreatedEvent["data"]): string {
         return data.id;

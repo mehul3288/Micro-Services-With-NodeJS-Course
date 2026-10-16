@@ -61,7 +61,9 @@ it("reserves a ticket", async () => {
     expect(updatedTicket?.reservedBy).toEqual(order?.id);
 });
 
-it("emits an order created event", async () => {
+import { OutboxEvent, Subjects } from "@mehul-mrtickets/common";
+
+it("writes an order created outbox event", async () => {
     const ticket = Ticket.build({
         id: new mongoose.Types.ObjectId().toHexString(),
         title: "concert",
@@ -77,7 +79,10 @@ it("emits an order created event", async () => {
         })
         .expect(201);
 
-    expect(kafkaWrapper.producer.send).toHaveBeenCalled();
+    const outboxEvents = await OutboxEvent.find({});
+    expect(outboxEvents.length).toEqual(1);
+    expect(outboxEvents[0].eventType).toEqual(Subjects.OrderCreated);
+    expect(outboxEvents[0].key).toEqual(ticket.id);
 });
 
 it("handles concurrent reservation requests so only one succeeds", async () => {

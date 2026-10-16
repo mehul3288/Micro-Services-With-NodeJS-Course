@@ -1,3 +1,4 @@
+import { ClientSession } from "mongoose";
 import { Subjects } from "./subjects";
 
 interface Event {
@@ -8,6 +9,7 @@ interface Event {
 export interface EventMetadata {
     eventId: string;
     occurredAt: string;
+    session?: ClientSession;
 }
 
 export abstract class Listener<T extends Event> {

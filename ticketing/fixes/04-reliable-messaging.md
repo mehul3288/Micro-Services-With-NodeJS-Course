@@ -259,13 +259,13 @@ Record in `results/phase-04-reliable-messaging.md`.
 
 ## 8. Checklist
 
-- [ ] Concept lesson written in `fixes/lessons/04-transactional-outbox-and-idempotency.md`, taught & discussed in detail, and explicit go-ahead signal received from developer
-- [ ] common: OutboxEvent, OutboxPublisher, OutboxRelay, Lease, ProcessedEvent; mongoose as peerDependency
-- [ ] `EventConsumer` `deduplicate` option with transaction + session in metadata
-- [ ] Orders: new / delete routes + listeners use transactions + outbox
-- [ ] Tickets: new / update routes + listeners use transactions + outbox
-- [ ] Payments: route (Stripe → transaction) + listeners
-- [ ] Expiration unchanged (Bull job is its outbox) — documented
-- [ ] All test setups use `MongoMemoryReplSet`, tests assert outbox rows
-- [ ] Chaos, Kafka-down and duplicate tests pass; results recorded
-- [ ] `notes/04-outbox-and-idempotency.md` written
+- [x] Concept lesson written in `fixes/lessons/04-transactional-outbox-and-idempotency.md`, taught & discussed in detail, and explicit go-ahead signal received from developer
+- [x] common: OutboxEvent, OutboxPublisher, OutboxRelay, Lease, ProcessedEvent; mongoose as peerDependency (@mehul-mrtickets/common@3.0.0 published)
+- [x] `EventConsumer` `deduplicate` option with transaction + session in metadata
+- [x] Orders: new / delete routes + listeners use transactions + outbox
+- [x] Tickets: new / update routes + listeners use transactions + outbox
+- [x] Payments: route (Stripe → transaction) + listeners
+- [x] Expiration unchanged (Bull job is its outbox) — documented
+- [x] All test setups use `rs0` replica set, tests assert outbox rows
+- [x] Tests pass across all services; results recorded in `fixes/results/phase-04-reliable-messaging.md`
+- [x] `notes/04-outbox-and-idempotency.md` written

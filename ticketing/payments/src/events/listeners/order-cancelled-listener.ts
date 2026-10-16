@@ -8,7 +8,7 @@ export class OrderCancelledListener extends Listener<OrderCancelledEvent> {
         const order = await Order.findOne({
             _id: data.id,
             version: data.version - 1,
-        });
+        }).session(metadata.session || null);
         if (!order) {
             throw new Error("Order not found");
         }
@@ -16,6 +16,6 @@ export class OrderCancelledListener extends Listener<OrderCancelledEvent> {
         order.set({
             status: OrderStatus.Cancelled,
         });
-        await order.save();
+        await order.save({ session: metadata.session });
     }
 }

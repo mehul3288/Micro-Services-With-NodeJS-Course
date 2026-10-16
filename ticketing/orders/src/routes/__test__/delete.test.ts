@@ -46,7 +46,9 @@ it("marks an order as cancelled and releases the ticket", async () => {
     expect(ticketInDb?.reservedBy).toBeNull();
 });
 
-it("emits an order cancelled event", async () => {
+import { OutboxEvent, Subjects } from "@mehul-mrtickets/common";
+
+it("writes an order cancelled outbox event", async () => {
     const ticket = Ticket.build({
         id: new mongoose.Types.ObjectId().toHexString(),
         title: "Concert",
@@ -67,7 +69,9 @@ it("emits an order cancelled event", async () => {
         .set("Cookie", user)
         .expect(204);
 
-    expect(kafkaWrapper.producer.send).toHaveBeenCalled();
+    const cancelledEvents = await OutboxEvent.find({ eventType: Subjects.OrderCancelled });
+    expect(cancelledEvents.length).toEqual(1);
+    expect(cancelledEvents[0].key).toEqual(ticket.id);
 });
 
 it("rejects cancellation of an already completed order with 400", async () => {
@@ -117,8 +121,8 @@ it("is idempotent when cancelling an already cancelled order", async () => {
         .set("Cookie", user)
         .expect(204);
 
-    // Clear publish mock
-    (kafkaWrapper.producer.send as jest.Mock).mockClear();
+    const firstCancelEvents = await OutboxEvent.find({ eventType: Subjects.OrderCancelled });
+    expect(firstCancelEvents.length).toEqual(1);
 
     // Second cancel -> 204 without republishing
     await request(app)
@@ -126,5 +130,6 @@ it("is idempotent when cancelling an already cancelled order", async () => {
         .set("Cookie", user)
         .expect(204);
 
-    expect(kafkaWrapper.producer.send).not.toHaveBeenCalled();
+    const secondCancelEvents = await OutboxEvent.find({ eventType: Subjects.OrderCancelled });
+    expect(secondCancelEvents.length).toEqual(1);
 });

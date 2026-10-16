@@ -55,15 +55,16 @@ it("updates the order status to cancelled and releases the ticket", async () => 
     expect(updatedTicket?.reservedBy).toBeNull();
 });
 
-it("emits an orderCancelled event with ticket.id partition key", async () => {
+import { OutboxEvent, Subjects } from "@mehul-mrtickets/common";
+
+it("writes an orderCancelled outbox event with ticket.id partition key", async () => {
     const { listener, data, order, ticket, metadata } = await setup();
     await listener.onMessage(data, metadata);
 
-    expect(kafkaWrapper.producer.send).toHaveBeenCalled();
-    const sendCall = (kafkaWrapper.producer.send as jest.Mock).mock.calls[0][0];
-    const message = sendCall.messages[0];
-    const eventData = JSON.parse(message.value);
+    const outboxEvents = await OutboxEvent.find({ eventType: Subjects.OrderCancelled });
+    expect(outboxEvents.length).toEqual(1);
+    expect(outboxEvents[0].key).toEqual(ticket.id);
 
-    expect(eventData.id).toEqual(order.id);
-    expect(message.key).toEqual(ticket.id);
+    const payload = JSON.parse(outboxEvents[0].payload);
+    expect(payload.id).toEqual(order.id);
 });

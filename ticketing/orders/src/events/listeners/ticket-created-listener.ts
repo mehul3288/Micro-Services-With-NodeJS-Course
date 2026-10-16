@@ -11,6 +11,6 @@ export class TicketCreatedListener extends Listener<TicketCreatedEvent> {
             price: data.price,
         });
 
-        await ticket.save();
+        await ticket.save({ session: metadata.session });
     }
 }

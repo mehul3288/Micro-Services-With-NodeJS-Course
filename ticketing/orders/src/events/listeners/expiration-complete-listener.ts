@@ -2,13 +2,12 @@ import { EventMetadata, ExpirationCompleteEvent, Listener, OrderStatus, Subjects
 import { Order } from "../../models/order";
 import { Ticket } from "../../models/ticket";
 import { OrderCancelledPublisher } from "../publishers/order-cancelled-publisher";
-import { kafkaWrapper } from "../../kafka-wrapper";
 
 export class ExpirationCompleteListener extends Listener<ExpirationCompleteEvent> {
     subject: Subjects.ExpirationComplete = Subjects.ExpirationComplete;
 
     async onMessage(data: ExpirationCompleteEvent["data"], metadata: EventMetadata): Promise<void> {
-        const order = await Order.findById(data.orderId).populate("ticket");
+        const order = await Order.findById(data.orderId).populate("ticket").session(metadata.session || null);
 
         if (!order) {
             throw new Error("Order not found");
@@ -19,20 +18,20 @@ export class ExpirationCompleteListener extends Listener<ExpirationCompleteEvent
         }
 
         // Release atomic ticket reservation upon order expiration
-        await Ticket.release(order.ticket.id, order.id);
+        await Ticket.release(order.ticket.id, order.id, metadata.session);
 
         order.set({
             status: OrderStatus.Cancelled,
         });
 
-        await order.save();
+        await order.save({ session: metadata.session });
 
-        await new OrderCancelledPublisher(kafkaWrapper.producer).publish({
+        await new OrderCancelledPublisher().publish({
             id: order.id,
             version: order.version,
             ticket: {
                 id: order.ticket.id,
             },
-        });
+        }, metadata.session);
     }
 }

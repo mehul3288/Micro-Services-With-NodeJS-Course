@@ -107,7 +107,9 @@ it("updates the ticket provided valid inputs", async () => {
 });
 
 
-it("publishes an event", async () => {
+import { OutboxEvent } from "@mehul-mrtickets/common";
+
+it("publishes an outbox event", async () => {
     const cookie = global.signin();
     const response = await request(app)
         .post("/api/tickets")
@@ -127,7 +129,12 @@ it("publishes an event", async () => {
         })
         .expect(200);
 
-    expect(kafkaWrapper.producer.send).toHaveBeenCalled();
+    const outboxEvents = await OutboxEvent.find({ eventType: "ticket:updated" });
+    expect(outboxEvents.length).toEqual(1);
+    expect(outboxEvents[0].topic).toEqual("ticket-events");
+    const payload = JSON.parse(outboxEvents[0].payload);
+    expect(payload.title).toEqual("abcd");
+    expect(payload.price).toEqual(100);
 })
 
 it("rejects updates if the tickets is reserved", async () => {

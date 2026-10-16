@@ -92,8 +92,10 @@ it("creates a ticket with valid inputs", async () => {
     expect(tickets[0].price).toEqual(price)
 })
 
-it("publishes an event", async () => {
-    const title = "Ticket"
+import { OutboxEvent } from "@mehul-mrtickets/common";
+
+it("publishes an outbox event", async () => {
+    const title = "Ticket";
     const price = 20;
 
     await request(app)
@@ -101,7 +103,15 @@ it("publishes an event", async () => {
         .set("Cookie", global.signin())
         .send({
             title,
-            price
-        }).expect(201)
-    expect(kafkaWrapper.producer.send).toHaveBeenCalled();
-})
+            price,
+        })
+        .expect(201);
+
+    const outboxEvents = await OutboxEvent.find({});
+    expect(outboxEvents.length).toEqual(1);
+    expect(outboxEvents[0].topic).toEqual("ticket-events");
+    expect(outboxEvents[0].eventType).toEqual("ticket:created");
+    const payload = JSON.parse(outboxEvents[0].payload);
+    expect(payload.title).toEqual(title);
+    expect(payload.price).toEqual(price);
+});

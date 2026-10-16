@@ -1,5 +1,4 @@
-import { EventMetadata, OrderCancelledEvent } from "@mehul-mrtickets/common";
-import { kafkaWrapper } from "../../../kafka-wrapper";
+import { EventMetadata, OrderCancelledEvent, OutboxEvent } from "@mehul-mrtickets/common";
 import mongoose from "mongoose";
 import { OrderCancelledListener } from "../order-cancelled-listener";
 import { Ticket } from "../../../models/ticket";
@@ -32,16 +31,16 @@ const setup = async () => {
     return { data, ticket, listener, orderId, metadata };
 };
 
-it("updates the ticket, removing its orderId and publishes an event", async () => {
+it("updates the ticket, removing its orderId and writes an outbox event", async () => {
     const { data, ticket, listener, metadata } = await setup();
     await listener.onMessage(data, metadata);
 
     const updatedTicket = await Ticket.findById(ticket.id);
     expect(updatedTicket!.orderId).not.toBeDefined();
 
-    expect(kafkaWrapper.producer.send).toHaveBeenCalled();
-    const sendCall = (kafkaWrapper.producer.send as jest.Mock).mock.calls[0][0];
-    expect(sendCall.messages[0].key).toEqual(ticket.id);
+    const outboxEvents = await OutboxEvent.find({ eventType: "ticket:updated" });
+    expect(outboxEvents.length).toEqual(1);
+    expect(outboxEvents[0].key).toEqual(ticket.id);
 });
 
 it("does not clear orderId if cancelling order id does not match ticket orderId", async () => {
@@ -59,5 +58,7 @@ it("does not clear orderId if cancelling order id does not match ticket orderId"
 
     const updatedTicket = await Ticket.findById(ticket.id);
     expect(updatedTicket!.orderId).toBeDefined();
-    expect(kafkaWrapper.producer.send).not.toHaveBeenCalled();
+
+    const outboxEvents = await OutboxEvent.find({ eventType: "ticket:updated" });
+    expect(outboxEvents.length).toEqual(0);
 });

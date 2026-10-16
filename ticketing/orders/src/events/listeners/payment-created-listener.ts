@@ -5,13 +5,13 @@ export class PaymentCreatedListener extends Listener<PaymentCreatedEvent> {
     readonly subject: Subjects.PaymentCreated = Subjects.PaymentCreated;
 
     async onMessage(data: PaymentCreatedEvent["data"], metadata: EventMetadata): Promise<void> {
-        const order = await Order.findById(data.orderId);
+        const order = await Order.findById(data.orderId).session(metadata.session || null);
         if (!order) {
             throw new Error("Order not found");
         }
         order.set({
             status: OrderStatus.Complete,
         });
-        await order.save();
+        await order.save({ session: metadata.session });
     }
 }

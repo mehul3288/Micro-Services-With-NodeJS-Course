@@ -5,7 +5,6 @@ import mongoose from "mongoose";
 import { Ticket } from "../models/ticket";
 import { Order } from "../models/order";
 import { OrderCreatedPublisher } from "../events/publishers/order-created-publisher";
-import { kafkaWrapper } from "../kafka-wrapper";
 
 const router = express.Router();
 const EXPIRATION_WINDOW_SECONDS = 1 * 60;
@@ -29,34 +28,40 @@ router.post(
         const expiration = new Date();
         expiration.setSeconds(expiration.getSeconds() + EXPIRATION_WINDOW_SECONDS);
 
-        const order = Order.build({
-            userId: req.currentUser!.id,
-            status: OrderStatus.Created,
-            expiresAt: expiration,
-            ticket: ticket
-        });
+        let orderDoc: any;
 
-        // Atomic check-and-reserve: only one concurrent request can transition reservedBy from null to order.id
-        const reservedTicket = await Ticket.reserve(ticket.id, order.id);
-        if (!reservedTicket) {
-            throw new BadRequestError("Ticket is already reserved");
-        }
+        await mongoose.connection.transaction(async (session) => {
+            const order = Order.build({
+                userId: req.currentUser!.id,
+                status: OrderStatus.Created,
+                expiresAt: expiration,
+                ticket: ticket,
+            });
 
-        await order.save();
-
-        await new OrderCreatedPublisher(kafkaWrapper.producer).publish({
-            id: order._id.toHexString(),
-            status: order.status,
-            userId: order.userId,
-            expiresAt: order.expiresAt.toISOString(),
-            version: order.version,
-            ticket: {
-                id: ticket.id,
-                price: ticket.price,
+            // Atomic check-and-reserve: only one concurrent request can transition reservedBy from null to order.id
+            const reservedTicket = await Ticket.reserve(ticket.id, order.id, session);
+            if (!reservedTicket) {
+                throw new BadRequestError("Ticket is already reserved");
             }
+
+            await order.save({ session });
+
+            await new OrderCreatedPublisher().publish({
+                id: order._id.toHexString(),
+                status: order.status,
+                userId: order.userId,
+                expiresAt: order.expiresAt.toISOString(),
+                version: order.version,
+                ticket: {
+                    id: ticket.id,
+                    price: ticket.price,
+                },
+            }, session);
+
+            orderDoc = order;
         });
 
-        res.status(201).send(order);
+        res.status(201).send(orderDoc);
     }
 );
 

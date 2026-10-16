@@ -1,6 +1,6 @@
-import { OrderCreatedEvent, Publisher, Subjects } from "@mehul-mrtickets/common";
+import { OrderCreatedEvent, OutboxPublisher, Subjects } from "@mehul-mrtickets/common";
 
-export class OrderCreatedPublisher extends Publisher<OrderCreatedEvent> {
+export class OrderCreatedPublisher extends OutboxPublisher<OrderCreatedEvent> {
     readonly subject = Subjects.OrderCreated;
     partitionKey(data: OrderCreatedEvent["data"]): string {
         return data.ticket.id;

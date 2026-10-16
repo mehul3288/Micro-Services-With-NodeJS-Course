@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { app } from "./app";
 import { kafkaWrapper } from "./kafka-wrapper";
-import { registerGracefulShutdown, ensureTopics, EventConsumer } from "@mehul-mrtickets/common";
+import { registerGracefulShutdown, ensureTopics, EventConsumer, OutboxRelay } from "@mehul-mrtickets/common";
 import { OrderCancelledListener } from "./events/listeners/order-cancelled-listener";
 import { OrderCreatedListener } from "./events/listeners/order-created-listener";
 
@@ -23,23 +23,35 @@ const start = async () => {
     }
 
     try {
+        await mongoose.connect(process.env.MONGO_URI);
+        console.log("Connected to Mongo!!!");
+
         const brokers = process.env.KAFKA_BROKERS.split(",");
         await kafkaWrapper.connect(process.env.KAFKA_CLIENT_ID, brokers);
         await ensureTopics(kafkaWrapper.kafka);
 
-        const consumer = new EventConsumer(kafkaWrapper.kafka, "payments-service");
+        const outboxRelay = new OutboxRelay(kafkaWrapper.producer, {
+            pollIntervalMs: 200,
+            batchSize: 50,
+        });
+        outboxRelay.start();
+
+        const consumer = new EventConsumer(kafkaWrapper.kafka, "payments-service", {
+            deduplicate: true,
+            connection: mongoose.connection,
+        });
         consumer.register(new OrderCreatedListener());
         consumer.register(new OrderCancelledListener());
         await consumer.start();
-
-        await mongoose.connect(process.env.MONGO_URI);
-        console.log("Connected to Mongo!!!");
 
         const server = app.listen(3000, () => {
             console.log("Server is running at port 3000!!!!");
         });
 
         registerGracefulShutdown(server, [
+            async () => {
+                await outboxRelay.stop();
+            },
             async () => {
                 await consumer.disconnect();
             },
