@@ -14,6 +14,7 @@ let dbPath: string;
 jest.setTimeout(60000);
 
 jest.mock("../kafka-wrapper");
+jest.mock("../stripe");
 
 beforeAll(async () => {
     process.env.JWT_KEY = "asdf";

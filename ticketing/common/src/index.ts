@@ -36,3 +36,7 @@ export * from "./outbox/outbox-event";
 export * from "./outbox/outbox-publisher";
 export * from "./outbox/outbox-relay";
 export * from "./outbox/lease";
+
+export * from "./logger/logger";
+export * from "./tracing/tracing";
+export * from "./metrics/metrics";

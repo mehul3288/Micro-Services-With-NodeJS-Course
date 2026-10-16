@@ -1,6 +1,9 @@
+import "./tracing";
 import mongoose from "mongoose";
 import { app } from "./app";
-import { registerGracefulShutdown } from "@mehul-mrtickets/common";
+import { registerGracefulShutdown, createLogger } from "@mehul-mrtickets/common";
+
+const logger = createLogger("auth");
 
 const start = async () => {
     if (!process.env.JWT_KEY) {
@@ -11,19 +14,19 @@ const start = async () => {
     }
     try {
         await mongoose.connect(process.env.MONGO_URI);
-        console.log("Connected to Mongo!!!");
+        logger.info("Connected to MongoDB");
 
         const server = app.listen(3000, () => {
-            console.log("Server is running at port 3000!!!!");
+            logger.info("Server is running on port 3000");
         });
 
         registerGracefulShutdown(server, [
             async () => {
                 await mongoose.disconnect();
-            }
+            },
         ]);
-    } catch (e) {
-        console.error("Failed to start auth service:", e);
+    } catch (e: any) {
+        logger.error({ err: e.message }, "Failed to start auth service");
         process.exit(1);
     }
 };

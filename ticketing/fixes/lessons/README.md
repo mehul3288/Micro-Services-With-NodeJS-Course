@@ -13,4 +13,6 @@ Every lesson explains the phase from first principles (the problem, architecture
 - [04-b — Outbox and Idempotency Code Walkthrough](file:///d:/Node%20JS/Micro%20Services%20With%20NodeJS%20Course/ticketing/fixes/lessons/04-b-outbox-and-idempotency-code-walkthrough.md)
 - [05-a — Sagas, Compensations, and Circuit Breakers](file:///d:/Node%20JS/Micro%20Services%20With%20NodeJS%20Course/ticketing/fixes/lessons/05-sagas-compensations-and-circuit-breakers.md)
 - [05-b — Payment Saga, State Machines & Circuit Breakers Code Walkthrough](file:///d:/Node%20JS/Micro%20Services%20With%20NodeJS%20Course/ticketing/fixes/lessons/05-b-payment-saga-code-walkthrough.md)
-- [06 — Observability (Metrics, Traces, Logs)](file:///d:/Node%20JS/Micro%20Services%20With%20NodeJS%20Course/ticketing/fixes/lessons/06-observability-metrics-traces-logs.md)
+- [06-a — Observability (Metrics, Traces, Logs)](file:///d:/Node%20JS/Micro%20Services%20With%20NodeJS%20Course/ticketing/fixes/lessons/06-observability-metrics-traces-logs.md)
+- [06-b — Observability (Distributed Tracing, Structured Logging & Prometheus) Code Walkthrough](file:///d:/Node%20JS/Micro%20Services%20With%20NodeJS%20Course/ticketing/fixes/lessons/06-b-observability-code-walkthrough.md)
+- [06-c — Observability Live Demo Runbook & Scenarios Guide](file:///d:/Node%20JS/Micro%20Services%20With%20NodeJS%20Course/ticketing/fixes/lessons/06-c-observability-demo-guide.md)

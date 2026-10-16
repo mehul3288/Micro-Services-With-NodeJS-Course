@@ -1,7 +1,10 @@
+import "./tracing";
 import { app } from "./app";
 import { OrderCreatedListener } from "./events/listeners/order-created-listener";
 import { kafkaWrapper } from "./kafka-wrapper";
-import { registerGracefulShutdown, ensureTopics, EventConsumer } from "@mehul-mrtickets/common";
+import { registerGracefulShutdown, ensureTopics, EventConsumer, createLogger } from "@mehul-mrtickets/common";
+
+const logger = createLogger("expiration");
 
 const start = async () => {
     if (!process.env.KAFKA_BROKERS) {
@@ -24,7 +27,7 @@ const start = async () => {
         await consumer.start();
 
         const server = app.listen(3000, () => {
-            console.log("Expiration health server listening on port 3000");
+            logger.info("Expiration health server listening on port 3000");
         });
 
         registerGracefulShutdown(server, [
@@ -36,7 +39,7 @@ const start = async () => {
             },
         ]);
     } catch (e) {
-        console.error("Failed to start expiration service:", e);
+        logger.error({ err: e }, "Failed to start expiration service");
         process.exit(1);
     }
 };

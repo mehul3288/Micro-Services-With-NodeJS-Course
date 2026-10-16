@@ -1,0 +1,186 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus
+rules:
+  - apiGroups: [""]
+    resources:
+      - nodes
+      - nodes/proxy
+      - services
+      - endpoints
+      - pods
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["extensions", "networking.k8s.io"]
+    resources:
+      - ingresses
+    verbs: ["get", "list", "watch"]
+  - nonResourceURLs: ["/metrics"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus
+subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: default
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 5s
+      evaluation_interval: 5s
+
+    rule_files:
+      - /etc/prometheus/alert-rules.yml
+
+    scrape_configs:
+      - job_name: "kubernetes-pods"
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: kubernetes_pod_name
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: replace
+            target_label: service
+
+      - job_name: "kafka-exporter"
+        static_configs:
+          - targets: ["kafka-exporter-srv:9308"]
+
+  alert-rules.yml: |
+    groups:
+      - name: ticketing_alerts
+        rules:
+          - alert: ServiceDown
+            expr: up == 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Service pod down (instance {{ $labels.instance }})"
+              description: "A service pod has been unreachable for more than 1 minute."
+
+          - alert: HighErrorRate
+            expr: sum(rate(ticketing_http_requests_total{status_code=~"5.."}[5m])) / sum(rate(ticketing_http_requests_total[5m])) > 0.05
+            for: 2m
+            labels:
+              severity: high
+            annotations:
+              summary: "High HTTP 5xx error rate (>5%)"
+              description: "Over 5% of HTTP requests returned 5xx status codes over the last 5 minutes."
+
+          - alert: HighOutboxLag
+            expr: ticketing_outbox_pending_events > 50
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High transactional outbox pending count"
+              description: "More than 50 events are pending in the outbox for {{ $labels.service }}."
+
+          - alert: CircuitBreakerOpen
+            expr: ticketing_circuit_breaker_state == 2
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Circuit breaker {{ $labels.name }} is OPEN"
+              description: "Circuit breaker tripped due to consecutive external API failures."
+
+          - alert: HighKafkaLag
+            expr: kafka_consumergroup_lag > 500
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High Kafka consumer group lag"
+              description: "Consumer lag on topic {{ $labels.topic }} exceeds 500 records."
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-depl
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      serviceAccountName: prometheus
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.51.0
+          args:
+            - "--config.file=/etc/prometheus/prometheus.yml"
+            - "--storage.tsdb.path=/prometheus"
+            - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+            - "--web.console.templates=/usr/share/prometheus/consoles"
+          ports:
+            - containerPort: 9090
+              name: web
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/prometheus
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: config-volume
+          configMap:
+            name: prometheus-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-srv
+spec:
+  selector:
+    app: prometheus
+  ports:
+    - name: web
+      protocol: TCP
+      port: 9090
+      targetPort: 9090

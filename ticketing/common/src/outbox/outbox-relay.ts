@@ -1,13 +1,16 @@
 import { Producer } from "kafkajs";
 import { randomUUID } from "crypto";
+import { trace, SpanKind, propagation, ROOT_CONTEXT } from "@opentelemetry/api";
 import { OutboxEvent } from "./outbox-event";
 import { acquireLease } from "./lease";
+import { outboxPendingGauge, outboxPublishLagHistogram } from "../metrics/metrics";
 
 export interface OutboxRelayOptions {
     pollIntervalMs?: number;
     leaseName?: string;
     holderId?: string;
     batchSize?: number;
+    serviceName?: string;
 }
 
 export class OutboxRelay {
@@ -16,6 +19,7 @@ export class OutboxRelay {
     private leaseName: string;
     private holderId: string;
     private batchSize: number;
+    private serviceName: string;
     private isRunning = false;
     private timer?: NodeJS.Timeout;
     private isPolling = false;
@@ -26,6 +30,7 @@ export class OutboxRelay {
         this.leaseName = options?.leaseName || "outbox-relay-lease";
         this.holderId = options?.holderId || process.env.HOSTNAME || randomUUID();
         this.batchSize = options?.batchSize || 100;
+        this.serviceName = options?.serviceName || process.env.HOSTNAME || "service";
     }
 
     start(): void {
@@ -72,6 +77,10 @@ export class OutboxRelay {
                 .sort({ _id: 1 })
                 .limit(this.batchSize);
 
+            try {
+                outboxPendingGauge.set({ service: this.serviceName }, pending.length);
+            } catch {}
+
             if (pending.length === 0) {
                 return 0;
             }
@@ -98,20 +107,48 @@ export class OutboxRelay {
                 cleanHeaders["event-type"] = event.eventType;
                 cleanHeaders["occurred-at"] = event.createdAt ? event.createdAt.toISOString() : new Date().toISOString();
 
-                await this.producer.send({
-                    topic: event.topic,
-                    messages: [
-                        {
-                            key: event.key,
-                            value: event.payload,
-                            headers: cleanHeaders,
-                        },
-                    ],
-                });
+                const extractedContext = propagation.extract(ROOT_CONTEXT, cleanHeaders);
+                const tracer = trace.getTracer("@mehul-mrtickets/common");
 
-                event.set({ publishedAt: new Date() });
+                await tracer.startActiveSpan(
+                    `publish: ${event.topic}`,
+                    {
+                        kind: SpanKind.PRODUCER,
+                        attributes: {
+                            "messaging.system": "kafka",
+                            "messaging.destination": event.topic,
+                            "messaging.event_type": event.eventType,
+                            "messaging.event_id": event.eventId,
+                        },
+                    },
+                    extractedContext,
+                    async (span) => {
+                        try {
+                            await this.producer.send({
+                                topic: event.topic,
+                                messages: [
+                                    {
+                                        key: event.key,
+                                        value: event.payload,
+                                        headers: cleanHeaders,
+                                    },
+                                ],
+                            });
+                        } finally {
+                            span.end();
+                        }
+                    }
+                );
+
+                const now = new Date();
+                event.set({ publishedAt: now });
                 await event.save();
                 publishedCount++;
+
+                try {
+                    const lagSeconds = (now.getTime() - event.createdAt.getTime()) / 1000;
+                    outboxPublishLagHistogram.observe({ service: this.serviceName }, Math.max(0, lagSeconds));
+                } catch {}
             }
 
             return publishedCount;

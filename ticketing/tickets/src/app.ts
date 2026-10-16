@@ -1,7 +1,16 @@
 import express from "express";
 import { json } from "body-parser";
 import mongoose from "mongoose";
-import { currentUser, errorHandler, NotFoundError, healthRouter, shutdownState } from "@mehul-mrtickets/common";
+import {
+    currentUser,
+    errorHandler,
+    NotFoundError,
+    healthRouter,
+    shutdownState,
+    createHttpLogger,
+    metricsMiddleware,
+    metricsRouter,
+} from "@mehul-mrtickets/common";
 import cookieSession from "cookie-session";
 import { kafkaWrapper } from "./kafka-wrapper";
 import { createTicketRouter } from "./routes/new";
@@ -12,16 +21,27 @@ import { updateTicketRouter } from "./routes/update";
 const app = express();
 app.use(json());
 app.set("trust proxy", true);
-app.use(cookieSession({
-    signed: false,
-    secure: process.env.NODE_ENV !== "test"
-}));
+app.use(
+    cookieSession({
+        signed: false,
+        secure: process.env.NODE_ENV !== "test",
+    })
+);
 
-app.use(healthRouter([
-    () => mongoose.connection.readyState === 1,
-    () => kafkaWrapper.isConnected,
-    () => !shutdownState.isShuttingDown
-]));
+// Observability: Metrics and HTTP request logger
+app.use(metricsMiddleware);
+app.use(metricsRouter);
+if (process.env.NODE_ENV !== "test") {
+    app.use(createHttpLogger("tickets"));
+}
+
+app.use(
+    healthRouter([
+        () => mongoose.connection.readyState === 1,
+        () => kafkaWrapper.isConnected,
+        () => !shutdownState.isShuttingDown,
+    ])
+);
 
 app.use(currentUser);
 app.use(createTicketRouter);

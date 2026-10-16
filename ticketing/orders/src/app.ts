@@ -1,7 +1,16 @@
 import express from "express";
 import { json } from "body-parser";
 import mongoose from "mongoose";
-import { currentUser, errorHandler, NotFoundError, healthRouter, shutdownState } from "@mehul-mrtickets/common";
+import {
+    currentUser,
+    errorHandler,
+    NotFoundError,
+    healthRouter,
+    shutdownState,
+    createHttpLogger,
+    metricsMiddleware,
+    metricsRouter,
+} from "@mehul-mrtickets/common";
 import cookieSession from "cookie-session";
 import { kafkaWrapper } from "./kafka-wrapper";
 import { newOrderRouter } from "./routes/new";
@@ -16,6 +25,13 @@ app.use(cookieSession({
     signed: false,
     secure: process.env.NODE_ENV !== "test"
 }));
+
+// Observability: Metrics and HTTP request logger
+app.use(metricsMiddleware);
+app.use(metricsRouter);
+if (process.env.NODE_ENV !== "test") {
+    app.use(createHttpLogger("orders"));
+}
 
 app.use(healthRouter([
     () => mongoose.connection.readyState === 1,

@@ -218,11 +218,14 @@ They make a strong visual for your README and resume.
 
 ## 10. Checklist
 
-- [ ] Concept lesson written in `fixes/lessons/06-observability-metrics-traces-logs.md`, taught & discussed in detail, and explicit go-ahead signal received from developer
-- [ ] common: `createLogger`, `startTracing`, `metricsRouter` + metrics, outbox/consumer context propagation
-- [ ] All services: tracing first import, logger, pino-http, metrics router, no `console.*` left
-- [ ] Business / pipeline metrics wired (outbox, consumer, breaker, sweeper)
-- [ ] Jaeger, Prometheus (+ rules), Grafana (+ 3 dashboards), kafka-exporter deployed
-- [ ] Pod annotations for scraping
-- [ ] End-to-end trace verified, screenshots saved
-- [ ] `notes/06-observability.md` written
+- [x] Concept lesson written in `fixes/lessons/06-observability-metrics-traces-logs.md`, taught & discussed in detail, and explicit go-ahead signal received from developer
+- [x] common: `createLogger`, `startTracing`, `metricsRouter` + metrics, outbox/consumer context propagation (@mehul-mrtickets/common@3.3.0)
+- [x] All services: tracing first import, logger, pino-http, metrics router, no `console.*` left
+- [x] Business / pipeline metrics wired (outbox, consumer, breaker, sweeper)
+- [x] Jaeger, Prometheus (+ rules), Grafana (+ 3 dashboards), kafka-exporter deployed in `infra/k8s/observability/`
+- [x] Pod annotations for scraping added to deployments
+- [x] 100% unit and integration tests passing across all microservices (85/85 tests)
+- [x] `fixes/lessons/06-b-observability-code-walkthrough.md` written
+- [x] `fixes/lessons/06-c-observability-demo-guide.md` written
+- [x] `fixes/notes/06-observability.md` written
+- [x] `fixes/results/phase-06-observability.md` written

@@ -11,12 +11,18 @@ spec:
     metadata:
       labels:
         app: payments
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/metrics"
     spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: payments
           image: mehul3288/payments
           env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://jaeger-srv:4318/v1/traces"
             - name: MONGO_URI
               value: "mongodb://payments-mongo-0.payments-mongo-srv:27017/payments?replicaSet=rs0"
             - name: JWT_KEY

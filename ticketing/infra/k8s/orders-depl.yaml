@@ -11,12 +11,18 @@ spec:
     metadata:
       labels:
         app: orders
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/metrics"
     spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: orders
           image: mehul3288/orders
           env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://jaeger-srv:4318/v1/traces"
             - name: MONGO_URI
               value: "mongodb://orders-mongo-0.orders-mongo-srv:27017/orders?replicaSet=rs0"
             - name: JWT_KEY

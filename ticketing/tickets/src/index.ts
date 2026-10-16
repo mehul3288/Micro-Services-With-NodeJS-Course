@@ -1,3 +1,4 @@
+import "./tracing";
 import mongoose from "mongoose";
 import { app } from "./app";
 import { kafkaWrapper } from "./kafka-wrapper";
@@ -6,9 +7,12 @@ import {
     ensureTopics,
     EventConsumer,
     OutboxRelay,
+    createLogger,
 } from "@mehul-mrtickets/common";
 import { OrderCreatedListener } from "./events/listeners/order-created-listener";
 import { OrderCancelledListener } from "./events/listeners/order-cancelled-listener";
+
+const logger = createLogger("tickets");
 
 const start = async () => {
     if (!process.env.JWT_KEY) {
@@ -26,7 +30,7 @@ const start = async () => {
 
     try {
         await mongoose.connect(process.env.MONGO_URI);
-        console.log("Connected to Mongo!!!");
+        logger.info("Connected to MongoDB");
 
         const brokers = process.env.KAFKA_BROKERS.split(",");
         await kafkaWrapper.connect(process.env.KAFKA_CLIENT_ID, brokers);
@@ -40,11 +44,13 @@ const start = async () => {
         consumer.register(new OrderCancelledListener());
         await consumer.start();
 
-        const outboxRelay = new OutboxRelay(kafkaWrapper.producer);
+        const outboxRelay = new OutboxRelay(kafkaWrapper.producer, {
+            serviceName: "tickets",
+        });
         outboxRelay.start();
 
         const server = app.listen(3000, () => {
-            console.log("Server is running at port 3000!!!!");
+            logger.info("Server is running on port 3000");
         });
 
         registerGracefulShutdown(server, [
@@ -61,8 +67,8 @@ const start = async () => {
                 await mongoose.disconnect();
             },
         ]);
-    } catch (e) {
-        console.error("Failed to start tickets service:", e);
+    } catch (e: any) {
+        logger.error({ err: e.message }, "Failed to start tickets service");
         process.exit(1);
     }
 };

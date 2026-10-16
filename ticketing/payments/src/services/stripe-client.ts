@@ -1,6 +1,6 @@
 import CircuitBreaker from "opossum";
 import Stripe from "stripe";
-import { ServiceUnavailableError } from "@mehul-mrtickets/common";
+import { ServiceUnavailableError, circuitBreakerStateGauge } from "@mehul-mrtickets/common";
 import { stripe } from "../stripe";
 
 export interface ChargeParams {
@@ -38,6 +38,18 @@ export const refundBreaker = new CircuitBreaker(createRefund, {
     resetTimeout: 30 * 1000,
     errorFilter: isBusinessError,
 });
+
+// Circuit Breaker Metrics (0 = closed, 1 = half-open, 2 = open)
+circuitBreakerStateGauge.set({ name: "stripe_charge" }, 0);
+circuitBreakerStateGauge.set({ name: "stripe_refund" }, 0);
+
+chargeBreaker.on("open", () => circuitBreakerStateGauge.set({ name: "stripe_charge" }, 2));
+chargeBreaker.on("halfOpen", () => circuitBreakerStateGauge.set({ name: "stripe_charge" }, 1));
+chargeBreaker.on("close", () => circuitBreakerStateGauge.set({ name: "stripe_charge" }, 0));
+
+refundBreaker.on("open", () => circuitBreakerStateGauge.set({ name: "stripe_refund" }, 2));
+refundBreaker.on("halfOpen", () => circuitBreakerStateGauge.set({ name: "stripe_refund" }, 1));
+refundBreaker.on("close", () => circuitBreakerStateGauge.set({ name: "stripe_refund" }, 0));
 
 export const chargeCard = async (params: ChargeParams, idempotencyKey: string): Promise<Stripe.Charge> => {
     try {

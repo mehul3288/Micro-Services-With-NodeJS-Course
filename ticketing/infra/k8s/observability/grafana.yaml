@@ -1,0 +1,284 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus-srv:9090
+        isDefault: true
+        editable: true
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-providers
+data:
+  providers.yaml: |
+    apiVersion: 1
+    providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+data:
+  service-overview.json: |
+    {
+      "annotations": { "list": [] },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 0,
+      "id": null,
+      "links": [],
+      "liveNow": false,
+      "panels": [
+        {
+          "title": "HTTP Request Rate (req/s)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+          "targets": [
+            {
+              "expr": "sum(rate(ticketing_http_requests_total[1m])) by (service)",
+              "legendFormat": "{{service}}"
+            }
+          ]
+        },
+        {
+          "title": "HTTP 5xx Error Rate (req/s)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+          "targets": [
+            {
+              "expr": "sum(rate(ticketing_http_requests_total{status_code=~\"5..\"}[1m])) by (service)",
+              "legendFormat": "{{service}} 5xx"
+            }
+          ]
+        },
+        {
+          "title": "HTTP P95 Request Duration (seconds)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, sum(rate(ticketing_http_request_duration_seconds_bucket[5m])) by (le, service))",
+              "legendFormat": "P95 {{service}}"
+            }
+          ]
+        },
+        {
+          "title": "Circuit Breaker State (0=Closed, 1=Half-Open, 2=Open)",
+          "type": "stat",
+          "gridPos": { "h": 6, "w": 12, "x": 0, "y": 8 },
+          "targets": [
+            {
+              "expr": "ticketing_circuit_breaker_state",
+              "legendFormat": "{{name}}"
+            }
+          ]
+        },
+        {
+          "title": "Active Service Pods (up)",
+          "type": "stat",
+          "gridPos": { "h": 6, "w": 12, "x": 12, "y": 8 },
+          "targets": [
+            {
+              "expr": "sum(up{kubernetes_pod_name=~\"(tickets|orders|payments|auth|expiration).*\"}) by (kubernetes_pod_name)",
+              "legendFormat": "{{kubernetes_pod_name}}"
+            }
+          ]
+        }
+      ],
+      "schemaVersion": 39,
+      "tags": ["ticketing", "overview"],
+      "title": "Service Overview (RED)",
+      "timezone": "browser"
+    }
+
+  event-pipeline.json: |
+    {
+      "annotations": { "list": [] },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 0,
+      "id": null,
+      "links": [],
+      "liveNow": false,
+      "panels": [
+        {
+          "title": "Kafka Consumer Group Lag",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "targets": [
+            {
+              "expr": "sum(kafka_consumergroup_lag) by (consumergroup, topic)",
+              "legendFormat": "{{consumergroup}} - {{topic}}"
+            }
+          ]
+        },
+        {
+          "title": "Outbox Pending Events",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "targets": [
+            {
+              "expr": "ticketing_outbox_pending_events",
+              "legendFormat": "{{service}} outbox pending"
+            }
+          ]
+        },
+        {
+          "title": "Events Published Rate (events/s)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "targets": [
+            {
+              "expr": "sum(rate(ticketing_events_published_total[1m])) by (topic)",
+              "legendFormat": "{{topic}}"
+            }
+          ]
+        },
+        {
+          "title": "Events Consumed Rate (events/s)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "targets": [
+            {
+              "expr": "sum(rate(ticketing_events_consumed_total[1m])) by (topic, result)",
+              "legendFormat": "{{topic}} ({{result}})"
+            }
+          ]
+        }
+      ],
+      "schemaVersion": 39,
+      "tags": ["ticketing", "kafka", "pipeline"],
+      "title": "Event Pipeline & Kafka Lag",
+      "timezone": "browser"
+    }
+
+  business.json: |
+    {
+      "annotations": { "list": [] },
+      "editable": true,
+      "fiscalYearStartMonth": 0,
+      "graphTooltip": 0,
+      "id": null,
+      "links": [],
+      "liveNow": false,
+      "panels": [
+        {
+          "title": "Orders Created Rate (orders/min)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+          "targets": [
+            {
+              "expr": "sum(rate(ticketing_events_published_total{event_type=\"order:created\"}[5m])) * 60",
+              "legendFormat": "Orders Created / min"
+            }
+          ]
+        },
+        {
+          "title": "Successful Payments Rate (payments/min)",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+          "targets": [
+            {
+              "expr": "sum(rate(ticketing_events_published_total{event_type=\"payment:created\"}[5m])) * 60",
+              "legendFormat": "Payments / min"
+            }
+          ]
+        },
+        {
+          "title": "Orders Swept by Background Job",
+          "type": "timeseries",
+          "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+          "targets": [
+            {
+              "expr": "sum(rate(ticketing_orders_swept_total[5m])) * 60",
+              "legendFormat": "Orders Swept / min"
+            }
+          ]
+        }
+      ],
+      "schemaVersion": 39,
+      "tags": ["ticketing", "business"],
+      "title": "Business Metrics",
+      "timezone": "browser"
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana-depl
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:10.4.1
+          env:
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              value: "admin"
+            - name: GF_AUTH_ANONYMOUS_ENABLED
+              value: "true"
+            - name: GF_AUTH_ANONYMOUS_ORG_ROLE
+              value: "Admin"
+          ports:
+            - containerPort: 3000
+              name: http
+          volumeMounts:
+            - name: datasources-volume
+              mountPath: /etc/grafana/provisioning/datasources
+            - name: providers-volume
+              mountPath: /etc/grafana/provisioning/dashboards
+            - name: dashboards-volume
+              mountPath: /var/lib/grafana/dashboards
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+      volumes:
+        - name: datasources-volume
+          configMap:
+            name: grafana-datasources
+        - name: providers-volume
+          configMap:
+            name: grafana-dashboard-providers
+        - name: dashboards-volume
+          configMap:
+            name: grafana-dashboards
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-srv
+spec:
+  selector:
+    app: grafana
+  ports:
+    - name: http
+      protocol: TCP
+      port: 3000
+      targetPort: 3000

@@ -11,12 +11,18 @@ spec:
     metadata:
       labels:
         app: tickets
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/metrics"
     spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: tickets
           image: mehul3288/tickets
           env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://jaeger-srv:4318/v1/traces"
             - name: MONGO_URI
               value: "mongodb://tickets-mongo-0.tickets-mongo-srv:27017/tickets?replicaSet=rs0"
             - name: JWT_KEY

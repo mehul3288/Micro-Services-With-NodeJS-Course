@@ -1,10 +1,13 @@
+import "./tracing";
 import mongoose from "mongoose";
 import { app } from "./app";
 import { kafkaWrapper } from "./kafka-wrapper";
-import { registerGracefulShutdown, ensureTopics, EventConsumer, OutboxRelay } from "@mehul-mrtickets/common";
+import { registerGracefulShutdown, ensureTopics, EventConsumer, OutboxRelay, createLogger } from "@mehul-mrtickets/common";
 import { OrderCancelledListener } from "./events/listeners/order-cancelled-listener";
 import { OrderCreatedListener } from "./events/listeners/order-created-listener";
 import { RefundRequestedListener } from "./events/listeners/refund-requested-listener";
+
+const logger = createLogger("payments");
 
 const start = async () => {
     if (!process.env.JWT_KEY) {
@@ -25,7 +28,7 @@ const start = async () => {
 
     try {
         await mongoose.connect(process.env.MONGO_URI);
-        console.log("Connected to Mongo!!!");
+        logger.info("Connected to Mongo");
 
         const brokers = process.env.KAFKA_BROKERS.split(",");
         await kafkaWrapper.connect(process.env.KAFKA_CLIENT_ID, brokers);
@@ -47,7 +50,7 @@ const start = async () => {
         await consumer.start();
 
         const server = app.listen(3000, () => {
-            console.log("Server is running at port 3000!!!!");
+            logger.info("Server is running at port 3000");
         });
 
         registerGracefulShutdown(server, [
@@ -65,7 +68,7 @@ const start = async () => {
             },
         ]);
     } catch (e) {
-        console.error("Failed to start payments service:", e);
+        logger.error({ err: e }, "Failed to start payments service");
         process.exit(1);
     }
 };

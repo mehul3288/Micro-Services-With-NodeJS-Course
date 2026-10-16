@@ -1,7 +1,9 @@
 import mongoose from "mongoose";
-import { acquireLease, OrderStatus } from "@mehul-mrtickets/common";
+import { acquireLease, OrderStatus, createLogger, ordersSweptCounter } from "@mehul-mrtickets/common";
 import { Order } from "../models/order";
 import { cancelOrder } from "../services/cancel-order";
+
+const logger = createLogger("orders");
 
 export class ExpireOrdersSweeper {
     private timer?: NodeJS.Timeout;
@@ -34,7 +36,7 @@ export class ExpireOrdersSweeper {
             try {
                 await this.sweep();
             } catch (err) {
-                console.error("[ExpireOrdersSweeper] Error during sweep:", err);
+                logger.error({ err }, "[ExpireOrdersSweeper] Error during sweep");
             } finally {
                 this.scheduleNext();
             }
@@ -64,12 +66,13 @@ export class ExpireOrdersSweeper {
                     }
                 });
             } catch (err) {
-                console.error(`[ExpireOrdersSweeper] Failed to sweep order ${order.id}:`, err);
+                logger.error({ err, orderId: order.id }, "[ExpireOrdersSweeper] Failed to sweep order");
             }
         }
 
         if (sweptCount > 0) {
-            console.log(`[ExpireOrdersSweeper] Swept and cancelled ${sweptCount} expired orders`);
+            ordersSweptCounter.inc({ service: "orders" }, sweptCount);
+            logger.info({ sweptCount }, "[ExpireOrdersSweeper] Swept and cancelled expired orders");
         }
 
         return sweptCount;
