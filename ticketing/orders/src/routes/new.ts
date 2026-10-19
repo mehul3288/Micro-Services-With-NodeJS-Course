@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 import { Ticket } from "../models/ticket";
 import { Order } from "../models/order";
 import { OrderCreatedPublisher } from "../events/publishers/order-created-publisher";
+import { orderRateLimiter } from "../middlewares/order-rate-limiter";
 
 const router = express.Router();
 const getExpirationWindowSeconds = (): number => {
@@ -18,6 +19,7 @@ const getExpirationWindowSeconds = (): number => {
 router.post(
     "/api/orders",
     requireAuth,
+    orderRateLimiter,
     body("ticketId")
         .notEmpty()
         .custom((input: string) => mongoose.Types.ObjectId.isValid(input))

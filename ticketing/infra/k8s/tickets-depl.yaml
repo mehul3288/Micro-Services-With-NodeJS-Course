@@ -36,6 +36,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            - name: REDIS_HOST
+              value: "tickets-redis-srv"
           resources:
             requests:
               cpu: 100m

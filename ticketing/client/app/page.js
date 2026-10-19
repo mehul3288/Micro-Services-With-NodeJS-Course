@@ -1,43 +1,34 @@
-import Link from 'next/link';
 import buildClient from '../api/build-client';
+import TicketList from '../components/ticket-list';
 
 export default async function LandingPage() {
-  let tickets = [];
+  let initialTickets = [];
+  let initialCursor = null;
+
   try {
     const client = await buildClient();
-    const { data } = await client.get('/api/tickets');
-    tickets = data || [];
+    const { data } = await client.get('/api/tickets?limit=20');
+
+    if (Array.isArray(data)) {
+      initialTickets = data;
+    } else if (data && data.tickets) {
+      initialTickets = data.tickets;
+      initialCursor = data.nextCursor || null;
+    }
   } catch (err) {
-    console.error(err);
+    console.error('Error fetching tickets for landing page:', err);
   }
 
-  const ticketList = tickets.map((ticket) => {
-    return (
-      <tr key={ticket.id}>
-        <td>{ticket.title}</td>
-        <td>{ticket.price}</td>
-        <td>
-          <Link href={`/tickets/${ticket.id}`}>
-            View
-          </Link>
-        </td>
-      </tr>
-    );
-  });
-
   return (
-    <div>
-      <h1>Tickets</h1>
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Title</th>
-            <th>Price</th>
-            <th>Link</th>
-          </tr>
-        </thead>
-        <tbody>{ticketList}</tbody>
-      </table>
+    <div className="container mt-4">
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <h2>Available Tickets</h2>
+      </div>
+
+      <TicketList
+        initialTickets={initialTickets}
+        initialCursor={initialCursor}
+      />
     </div>
   );
 }

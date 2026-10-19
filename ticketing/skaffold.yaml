@@ -3,8 +3,8 @@ kind: Config
 deploy:
   kubectl:
     manifests:
-      - "./infra/k8s/*"
-      - "./infra/k8s/observability/*"
+      - "./infra/k8s/*.yaml"
+      - "./infra/k8s/observability/*.yaml"
 build:
   local:
     push: false

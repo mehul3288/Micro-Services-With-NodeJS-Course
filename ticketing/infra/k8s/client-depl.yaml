@@ -14,7 +14,10 @@ spec:
     spec:
       containers:
         - name: client
-          image: mehul3288/ticketing-client:0.0.1
+          image: mehul3288/ticketing-client
+          env:
+            - name: INGRESS_URL
+              value: "http://kong-proxy.kong.svc.cluster.local"
 ---
 apiVersion: v1
 kind: Service

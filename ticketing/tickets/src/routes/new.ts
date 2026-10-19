@@ -4,6 +4,7 @@ import express, { Request, Response } from "express";
 import mongoose from "mongoose";
 import { Ticket } from "../models/ticket";
 import { TicketCreatedPublisher } from "../events/publishers/ticket-created-publisher";
+import { ticketCache } from "../services/ticket-cache";
 
 const router = express.Router();
 
@@ -35,6 +36,9 @@ router.post(
 
             createdTicket = ticket;
         });
+
+        // Invalidate catalog cache post-commit
+        await ticketCache.invalidate();
 
         res.status(201).send(createdTicket);
     }

@@ -1,6 +1,7 @@
 import { EventMetadata, Listener, OrderCancelledEvent, Subjects } from "@mehul-mrtickets/common";
 import { Ticket } from "../../models/ticket";
 import { TicketUpdatedPublisher } from "../publishers/ticket-updated-publisher";
+import { ticketCache } from "../../services/ticket-cache";
 
 export class OrderCancelledListener extends Listener<OrderCancelledEvent> {
     subject: Subjects.OrderCancelled = Subjects.OrderCancelled;
@@ -34,5 +35,8 @@ export class OrderCancelledListener extends Listener<OrderCancelledEvent> {
             },
             metadata.session
         );
+
+        // Invalidate cached ticket and catalog list so released ticket reappears in browse
+        await ticketCache.invalidate(ticket.id);
     }
 }

@@ -21,3 +21,7 @@ Every note covers:
   - Incident Triage Playbook: [06 — Production Incident Triage & Troubleshooting Playbook](file:///d:/Node%20JS/Micro%20Services%20With%20NodeJS%20Course/ticketing/fixes/notes/06-observability-triage-playbook.md)
   - Detailed Code Walkthrough: [06-b — Code & Architecture Walkthrough](file:///d:/Node%20JS/Micro%20Services%20With%20NodeJS%20Course/ticketing/fixes/lessons/06-b-observability-code-walkthrough.md)
   - Presentation Demo Guide: [06-c — Observability Demo Runbook](file:///d:/Node%20JS/Micro%20Services%20With%20NodeJS%20Course/ticketing/fixes/lessons/06-c-observability-demo-guide.md)
+- [07 — Caching & API Gateways (Kong Gateway, Redis Cache-Aside & Rate Limiting)](file:///d:/Node%20JS/Micro%20Services%20With%20NodeJS%20Course/ticketing/fixes/notes/07-caching-and-gateway.md)
+  - Lessons & System Design: [07-a — Flash Sales & Edge Architecture](file:///d:/Node%20JS/Micro%20Services%20With%20NodeJS%20Course/ticketing/fixes/lessons/07-caching-and-api-gateways.md)
+  - Detailed Code Walkthrough: [07-b — Code & Architecture Walkthrough](file:///d:/Node%20JS/Micro%20Services%20With%20NodeJS%20Course/ticketing/fixes/lessons/07-b-caching-and-gateway-code-walkthrough.md)
+

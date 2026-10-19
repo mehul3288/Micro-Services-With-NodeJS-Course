@@ -16,3 +16,8 @@ Every lesson explains the phase from first principles (the problem, architecture
 - [06-a — Observability (Metrics, Traces, Logs)](file:///d:/Node%20JS/Micro%20Services%20With%20NodeJS%20Course/ticketing/fixes/lessons/06-observability-metrics-traces-logs.md)
 - [06-b — Observability (Distributed Tracing, Structured Logging & Prometheus) Code Walkthrough](file:///d:/Node%20JS/Micro%20Services%20With%20NodeJS%20Course/ticketing/fixes/lessons/06-b-observability-code-walkthrough.md)
 - [06-c — Observability Live Demo Runbook & Scenarios Guide](file:///d:/Node%20JS/Micro%20Services%20With%20NodeJS%20Course/ticketing/fixes/lessons/06-c-observability-demo-guide.md)
+- [07-a — Caching & API Gateways (Redis Cache, Pagination, Kong & Layered Rate Limiting)](file:///d:/Node%20JS/Micro%20Services%20With%20NodeJS%20Course/ticketing/fixes/lessons/07-caching-and-api-gateways.md)
+- [07-b — Caching & API Gateways Code & Architecture Walkthrough](file:///d:/Node%20JS/Micro%20Services%20With%20NodeJS%20Course/ticketing/fixes/lessons/07-b-caching-and-gateway-code-walkthrough.md)
+- [08-a — Security Hardening (Refresh Tokens, Sealed Secrets & Zero-Trust mTLS)](file:///d:/Node%20JS/Micro%20Services%20With%20NodeJS%20Course/ticketing/fixes/lessons/08-auth-security-and-zero-trust.md)
+
+

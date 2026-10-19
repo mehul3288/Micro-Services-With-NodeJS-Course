@@ -9,7 +9,8 @@ export default async function buildClient() {
 
     return axios.create({
       baseURL:
-        'http://ingress-nginx-controller.ingress-nginx.svc.cluster.local',
+        process.env.INGRESS_URL ||
+        'http://kong-proxy.kong.svc.cluster.local',
       headers: {
         'X-Forwarded-Proto': headersList.get('x-forwarded-proto') || 'https',
         Host: headersList.get('host') || 'ticketing.dev',

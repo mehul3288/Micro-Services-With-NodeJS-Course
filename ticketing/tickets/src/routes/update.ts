@@ -10,6 +10,7 @@ import {
     validateRequest,
 } from "@mehul-mrtickets/common";
 import { TicketUpdatedPublisher } from "../events/publishers/ticket-updated-publisher";
+import { ticketCache } from "../services/ticket-cache";
 
 const router = express.Router();
 
@@ -56,6 +57,11 @@ router.put(
 
             updatedTicket = ticket;
         });
+
+        // Invalidate individual ticket cache and list cache post-commit
+        if (updatedTicket) {
+            await ticketCache.invalidate(updatedTicket.id);
+        }
 
         res.send(updatedTicket);
     }
