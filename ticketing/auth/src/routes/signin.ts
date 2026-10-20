@@ -3,7 +3,11 @@ import { body } from "express-validator";
 import { BadRequestError, validateRequest } from "@mehul-mrtickets/common";
 import { User } from "../models/user";
 import { Password } from "../services/password";
-import jwt from "jsonwebtoken";
+import {
+    TokenService,
+    REFRESH_COOKIE_NAME,
+    REFRESH_COOKIE_OPTIONS,
+} from "../services/token-service";
 
 const router = Router();
 router.post("/api/users/signin",
@@ -19,12 +23,18 @@ router.post("/api/users/signin",
         if (!isPasswordValid) {
             throw new BadRequestError("Invalid Credentials")
         }
-        const userJwt = jwt.sign({
-            id: exist.id,
-            email: exist.email
-        }, process.env.JWT_KEY!);
+        const userJwt = TokenService.generateAccessToken(exist);
+        const { rawToken: refreshToken } = await TokenService.createRefreshToken(exist.id);
+
         req.session = { jwt: userJwt };
-        res.status(200).send({ success: true })
+        res.cookie(REFRESH_COOKIE_NAME, refreshToken, REFRESH_COOKIE_OPTIONS);
+
+        res.status(200).send({
+            success: true,
+            id: exist.id,
+            email: exist.email,
+            refreshToken,
+        });
     })
 
 export { router as signinRouter };

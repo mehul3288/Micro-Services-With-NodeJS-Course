@@ -27,7 +27,10 @@ spec:
     metadata:
       labels:
         app: orders-mongo
+      annotations:
+        config.linkerd.io/default-inbound-policy: "deny"
     spec:
+      serviceAccountName: orders-sa
       containers:
         - name: orders-mongo
           image: mongo

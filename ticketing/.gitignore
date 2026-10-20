@@ -4,4 +4,5 @@ build/
 .tmp-mongo/
 dist/
 *.log
+*.exe
 .DS_Store

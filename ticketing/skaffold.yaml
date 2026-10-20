@@ -5,6 +5,8 @@ deploy:
     manifests:
       - "./infra/k8s/*.yaml"
       - "./infra/k8s/observability/*.yaml"
+      - "./infra/k8s/secrets/*.yaml"
+      - "./infra/k8s/security/*.yaml"
 build:
   local:
     push: false

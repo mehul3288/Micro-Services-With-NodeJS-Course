@@ -99,8 +99,8 @@ userSchema.statics.build = (attrs: UserAttrs) => {
 const User = model<UserAttrs, UserModel>("User", userSchema);
 
 // ============================================================================
-// 6. Exporting the Model
+// 6. Exporting the Model and Document Type
 // ============================================================================
-// ROLE: Makes the `User` model available to other files across the microservice
-// (such as signup, signin, and current-user route handlers).
+// ROLE: Makes the `User` model and document type available to other files across the microservice
+export type UserDoc = HydratedDocument<UserAttrs>;
 export { User };

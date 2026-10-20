@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '../api/api-client';
 import { useState } from 'react';
 
 export default function useRequest({ url, method, body, onSuccess }) {

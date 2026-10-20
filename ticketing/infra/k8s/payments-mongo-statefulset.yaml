@@ -27,7 +27,10 @@ spec:
     metadata:
       labels:
         app: payments-mongo
+      annotations:
+        config.linkerd.io/default-inbound-policy: "deny"
     spec:
+      serviceAccountName: payments-sa
       containers:
         - name: payments-mongo
           image: mongo

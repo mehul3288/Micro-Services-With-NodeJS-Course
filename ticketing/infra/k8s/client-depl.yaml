@@ -12,9 +12,11 @@ spec:
       labels:
         app: client
     spec:
+      serviceAccountName: client-sa
       containers:
         - name: client
           image: mehul3288/ticketing-client
+          imagePullPolicy: IfNotPresent
           env:
             - name: INGRESS_URL
               value: "http://kong-proxy.kong.svc.cluster.local"

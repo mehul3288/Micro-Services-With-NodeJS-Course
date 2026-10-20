@@ -16,6 +16,7 @@ spec:
         prometheus.io/port: "3000"
         prometheus.io/path: "/metrics"
     spec:
+      serviceAccountName: orders-sa
       terminationGracePeriodSeconds: 30
       containers:
         - name: orders
@@ -49,15 +50,16 @@ spec:
             httpGet:
               path: /healthz/ready
               port: 3000
+            initialDelaySeconds: 15
             periodSeconds: 5
-            failureThreshold: 2
+            failureThreshold: 6
           livenessProbe:
             httpGet:
               path: /healthz/live
               port: 3000
-            initialDelaySeconds: 10
+            initialDelaySeconds: 30
             periodSeconds: 10
-            failureThreshold: 3
+            failureThreshold: 6
           lifecycle:
             preStop:
               exec:

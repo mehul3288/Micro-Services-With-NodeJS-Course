@@ -1,0 +1,157 @@
+# ============================================================================
+# Zero-Trust Database Isolation Policies (Linkerd Server & AuthorizationPolicy)
+# ============================================================================
+# Rule: Each MongoDB StatefulSet accepts connections ONLY from its authorized
+# microservice ServiceAccount. Lateral movement from any other pod is blocked.
+# ============================================================================
+
+# --- 1. AUTH DATABASE ISOLATION ---
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  name: auth-mongo-27017
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: auth-mongo
+  port: 27017
+  proxyProtocol: opaque
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: MeshTLSAuthentication
+metadata:
+  name: auth-sa-auth
+  namespace: default
+spec:
+  identities:
+    - "auth-sa.default.serviceaccount.identity.linkerd.cluster.local"
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: AuthorizationPolicy
+metadata:
+  name: auth-mongo-policy
+  namespace: default
+spec:
+  targetRef:
+    group: policy.linkerd.io
+    kind: Server
+    name: auth-mongo-27017
+  requiredAuthenticationRefs:
+    - group: policy.linkerd.io
+      kind: MeshTLSAuthentication
+      name: auth-sa-auth
+---
+
+# --- 2. TICKETS DATABASE ISOLATION ---
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  name: tickets-mongo-27017
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: tickets-mongo
+  port: 27017
+  proxyProtocol: opaque
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: MeshTLSAuthentication
+metadata:
+  name: tickets-sa-auth
+  namespace: default
+spec:
+  identities:
+    - "tickets-sa.default.serviceaccount.identity.linkerd.cluster.local"
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: AuthorizationPolicy
+metadata:
+  name: tickets-mongo-policy
+  namespace: default
+spec:
+  targetRef:
+    group: policy.linkerd.io
+    kind: Server
+    name: tickets-mongo-27017
+  requiredAuthenticationRefs:
+    - group: policy.linkerd.io
+      kind: MeshTLSAuthentication
+      name: tickets-sa-auth
+---
+
+# --- 3. ORDERS DATABASE ISOLATION ---
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  name: orders-mongo-27017
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: orders-mongo
+  port: 27017
+  proxyProtocol: opaque
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: MeshTLSAuthentication
+metadata:
+  name: orders-sa-auth
+  namespace: default
+spec:
+  identities:
+    - "orders-sa.default.serviceaccount.identity.linkerd.cluster.local"
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: AuthorizationPolicy
+metadata:
+  name: orders-mongo-policy
+  namespace: default
+spec:
+  targetRef:
+    group: policy.linkerd.io
+    kind: Server
+    name: orders-mongo-27017
+  requiredAuthenticationRefs:
+    - group: policy.linkerd.io
+      kind: MeshTLSAuthentication
+      name: orders-sa-auth
+---
+
+# --- 4. PAYMENTS DATABASE ISOLATION ---
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  name: payments-mongo-27017
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: payments-mongo
+  port: 27017
+  proxyProtocol: opaque
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: MeshTLSAuthentication
+metadata:
+  name: payments-sa-auth
+  namespace: default
+spec:
+  identities:
+    - "payments-sa.default.serviceaccount.identity.linkerd.cluster.local"
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: AuthorizationPolicy
+metadata:
+  name: payments-mongo-policy
+  namespace: default
+spec:
+  targetRef:
+    group: policy.linkerd.io
+    kind: Server
+    name: payments-mongo-27017
+  requiredAuthenticationRefs:
+    - group: policy.linkerd.io
+      kind: MeshTLSAuthentication
+      name: payments-sa-auth

@@ -4,6 +4,7 @@ metadata:
   name: kafka-srv
 spec:
   clusterIP: None
+  publishNotReadyAddresses: true
   selector:
     app: kafka
   ports:
@@ -28,6 +29,8 @@ spec:
     metadata:
       labels:
         app: kafka
+      annotations:
+        config.linkerd.io/opaque-ports: "9092,9093"
     spec:
       containers:
         - name: kafka
@@ -76,6 +79,12 @@ spec:
             limits:
               cpu: 1000m
               memory: 1Gi
+          readinessProbe:
+            tcpSocket:
+              port: 9092
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            failureThreshold: 10
   volumeClaimTemplates:
     - metadata:
         name: kafka-data

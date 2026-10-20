@@ -27,7 +27,10 @@ spec:
     metadata:
       labels:
         app: auth-mongo
+      annotations:
+        config.linkerd.io/default-inbound-policy: "deny"
     spec:
+      serviceAccountName: auth-sa
       containers:
         - name: auth-mongo
           image: mongo

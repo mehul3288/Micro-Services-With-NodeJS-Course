@@ -14,7 +14,21 @@ spec:
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9308"
+        linkerd.io/inject: "disabled"
     spec:
+      initContainers:
+        - name: wait-for-kafka
+          image: apache/kafka:3.9.0
+          command:
+            - /bin/bash
+            - -c
+            - |
+              echo "Waiting for Kafka broker kafka-0.kafka-srv:9092 to accept client API queries..."
+              until /opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server kafka-0.kafka-srv:9092 > /dev/null 2>&1; do
+                echo "Kafka broker not ready yet. Retrying in 2 seconds..."
+                sleep 2
+              done
+              echo "Kafka broker is fully ready to accept client connections!"
       containers:
         - name: kafka-exporter
           image: danielqsj/kafka-exporter:v1.7.0

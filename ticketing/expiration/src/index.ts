@@ -18,6 +18,10 @@ const start = async () => {
     }
 
     try {
+        const server = app.listen(3000, () => {
+            logger.info("Expiration health server listening on port 3000");
+        });
+
         const brokers = process.env.KAFKA_BROKERS.split(",");
         await kafkaWrapper.connect(process.env.KAFKA_CLIENT_ID, brokers);
         await ensureTopics(kafkaWrapper.kafka);
@@ -25,10 +29,6 @@ const start = async () => {
         const consumer = new EventConsumer(kafkaWrapper.kafka, "expiration-service");
         consumer.register(new OrderCreatedListener());
         await consumer.start();
-
-        const server = app.listen(3000, () => {
-            logger.info("Expiration health server listening on port 3000");
-        });
 
         registerGracefulShutdown(server, [
             async () => {

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import axios from 'axios';
+import axios from '../api/api-client';
 
 export default function TicketList({ initialTickets = [], initialCursor = null }) {
   const [tickets, setTickets] = useState(initialTickets);
