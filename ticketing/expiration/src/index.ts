@@ -2,7 +2,7 @@ import "./tracing";
 import { app } from "./app";
 import { OrderCreatedListener } from "./events/listeners/order-created-listener";
 import { kafkaWrapper } from "./kafka-wrapper";
-import { registerGracefulShutdown, ensureTopics, EventConsumer, createLogger } from "@mehul-mrtickets/common";
+import { registerGracefulShutdown, ensureTopics, EventConsumer, createLogger, schemaRegistry } from "@mehul-mrtickets/common";
 
 const logger = createLogger("expiration");
 
@@ -25,6 +25,7 @@ const start = async () => {
         const brokers = process.env.KAFKA_BROKERS.split(",");
         await kafkaWrapper.connect(process.env.KAFKA_CLIENT_ID, brokers);
         await ensureTopics(kafkaWrapper.kafka);
+        await schemaRegistry.init();
 
         const consumer = new EventConsumer(kafkaWrapper.kafka, "expiration-service");
         consumer.register(new OrderCreatedListener());

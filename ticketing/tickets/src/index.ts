@@ -8,6 +8,7 @@ import {
     EventConsumer,
     OutboxRelay,
     createLogger,
+    schemaRegistry,
 } from "@mehul-mrtickets/common";
 import { OrderCreatedListener } from "./events/listeners/order-created-listener";
 import { OrderCancelledListener } from "./events/listeners/order-cancelled-listener";
@@ -35,6 +36,7 @@ const start = async () => {
         const brokers = process.env.KAFKA_BROKERS.split(",");
         await kafkaWrapper.connect(process.env.KAFKA_CLIENT_ID, brokers);
         await ensureTopics(kafkaWrapper.kafka);
+        await schemaRegistry.init();
 
         const consumer = new EventConsumer(kafkaWrapper.kafka, "tickets-service", {
             deduplicate: true,

@@ -31,6 +31,7 @@ export * from "./events/expiration-complete-event";
 export * from "./events/payment-created-event";
 export * from "./events/refund-requested-event";
 export * from "./events/payment-refunded-event";
+export * from "./events/schema-registry";
 
 export * from "./outbox/outbox-event";
 export * from "./outbox/outbox-publisher";

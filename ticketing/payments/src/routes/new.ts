@@ -12,6 +12,7 @@ import mongoose from "mongoose";
 import { Order } from "../models/order";
 import { Payment } from "../models/payment";
 import { PaymentCreatedPublisher } from "../events/publishers/payment-created-publisher";
+import { toPaymentCreatedEvent } from "../events/builders/payment-event-builders";
 import { chargeCard } from "../services/stripe-client";
 
 const router = express.Router();
@@ -77,11 +78,7 @@ router.post(
                 await payment.save({ session });
 
                 await new PaymentCreatedPublisher().publish(
-                    {
-                        id: payment.id,
-                        orderId: payment.orderId,
-                        stripeId: payment.stripeId,
-                    },
+                    toPaymentCreatedEvent(payment),
                     session
                 );
 

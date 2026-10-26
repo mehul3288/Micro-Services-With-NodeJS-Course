@@ -42,6 +42,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            - name: SCHEMA_REGISTRY_URL
+              value: "http://schema-registry-srv:8081"
           resources:
             requests:
               cpu: 100m

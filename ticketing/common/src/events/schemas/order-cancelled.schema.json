@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OrderCancelled",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "version": { "type": "integer", "minimum": 0 },
+    "ticket": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" }
+      },
+      "required": ["id"],
+      "additionalProperties": true
+    }
+  },
+  "required": ["id", "version", "ticket"],
+  "additionalProperties": true
+}

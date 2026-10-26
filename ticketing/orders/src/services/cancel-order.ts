@@ -4,6 +4,7 @@ import { OrderDoc } from "../models/order";
 import { Ticket } from "../models/ticket";
 import { OrderCancelledPublisher } from "../events/publishers/order-cancelled-publisher";
 import { canTransition } from "../models/order-transitions";
+import { toOrderCancelledEvent } from "../events/builders/order-event-builders";
 
 export const cancelOrder = async (order: OrderDoc, session?: ClientSession): Promise<boolean> => {
     if (!canTransition(order.status, OrderStatus.Cancelled)) {
@@ -22,13 +23,10 @@ export const cancelOrder = async (order: OrderDoc, session?: ClientSession): Pro
     order.set({ status: OrderStatus.Cancelled });
     await order.save({ session });
 
-    await new OrderCancelledPublisher().publish({
-        id: order.id,
-        version: order.version,
-        ticket: {
-            id: ticketId,
-        },
-    }, session);
+    await new OrderCancelledPublisher().publish(
+        toOrderCancelledEvent(order, ticketId),
+        session
+    );
 
     return true;
 };

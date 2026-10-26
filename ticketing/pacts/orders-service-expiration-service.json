@@ -1,0 +1,43 @@
+{
+  "consumer": {
+    "name": "orders-service"
+  },
+  "messages": [
+    {
+      "contents": {
+        "orderId": "6ad73ac20ae60864a6bdfe1d"
+      },
+      "description": "an expiration:complete message",
+      "matchingRules": {
+        "body": {
+          "$.orderId": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          }
+        }
+      },
+      "metadata": {
+        "contentType": "application/json"
+      }
+    }
+  ],
+  "metadata": {
+    "pact-js": {
+      "version": "17.1.4"
+    },
+    "pactRust": {
+      "ffi": "0.5.8",
+      "models": "1.3.16"
+    },
+    "pactSpecification": {
+      "version": "3.0.0"
+    }
+  },
+  "provider": {
+    "name": "expiration-service"
+  }
+}

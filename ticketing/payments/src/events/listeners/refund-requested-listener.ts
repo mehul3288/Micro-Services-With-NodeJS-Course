@@ -2,6 +2,7 @@ import { EventMetadata, Listener, PaymentStatus, RefundRequestedEvent, Subjects 
 import { Payment } from "../../models/payment";
 import { refundCharge } from "../../services/stripe-client";
 import { PaymentRefundedPublisher } from "../publishers/payment-refunded-publisher";
+import { toPaymentRefundedEvent } from "../builders/payment-event-builders";
 
 export class RefundRequestedListener extends Listener<RefundRequestedEvent> {
     readonly subject: Subjects.RefundRequested = Subjects.RefundRequested;
@@ -29,10 +30,9 @@ export class RefundRequestedListener extends Listener<RefundRequestedEvent> {
         payment.set({ status: PaymentStatus.Refunded });
         await payment.save({ session: metadata.session });
 
-        await new PaymentRefundedPublisher().publish({
-            paymentId: payment.id,
-            orderId: payment.orderId,
-            stripeRefundId: refund.id,
-        }, metadata.session);
+        await new PaymentRefundedPublisher().publish(
+            toPaymentRefundedEvent(payment, refund.id),
+            metadata.session
+        );
     }
 }

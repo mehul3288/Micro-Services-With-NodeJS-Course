@@ -4,6 +4,7 @@ import { trace, SpanKind, propagation, ROOT_CONTEXT } from "@opentelemetry/api";
 import { OutboxEvent } from "./outbox-event";
 import { acquireLease } from "./lease";
 import { outboxPendingGauge, outboxPublishLagHistogram } from "../metrics/metrics";
+import { schemaRegistry } from "../events/schema-registry";
 
 export interface OutboxRelayOptions {
     pollIntervalMs?: number;
@@ -124,12 +125,20 @@ export class OutboxRelay {
                     extractedContext,
                     async (span) => {
                         try {
+                            let encodedValue: Buffer | string = event.payload;
+                            try {
+                                const rawData = JSON.parse(event.payload);
+                                encodedValue = await schemaRegistry.encode(event.topic, event.eventType, rawData);
+                            } catch (encodeErr: any) {
+                                console.warn(`[OutboxRelay] Schema encode fallback to raw payload for ${event.eventType}:`, encodeErr.message);
+                            }
+
                             await this.producer.send({
                                 topic: event.topic,
                                 messages: [
                                     {
                                         key: event.key,
-                                        value: event.payload,
+                                        value: encodedValue,
                                         headers: cleanHeaders,
                                     },
                                 ],

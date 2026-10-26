@@ -1,6 +1,7 @@
 import Queue from "bull";
 import { ExpirationCompletePublisher } from "../events/publishers/expiration-complete-publisher";
 import { kafkaWrapper } from "../kafka-wrapper";
+import { toExpirationCompleteEvent } from "../events/builders/expiration-event-builders";
 
 interface Payload {
     orderId: string;
@@ -20,9 +21,9 @@ const expirationQueue = new Queue<Payload>("order:expiration", {
 });
 
 expirationQueue.process(async (job) => {
-    await new ExpirationCompletePublisher(kafkaWrapper.producer).publish({
-        orderId: job.data.orderId,
-    });
+    await new ExpirationCompletePublisher(kafkaWrapper.producer).publish(
+        toExpirationCompleteEvent(job.data.orderId)
+    );
 });
 
 export { expirationQueue };

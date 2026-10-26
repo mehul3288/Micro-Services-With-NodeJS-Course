@@ -1,0 +1,179 @@
+{
+  "consumer": {
+    "name": "payments-service"
+  },
+  "messages": [
+    {
+      "contents": {
+        "orderId": "6ad73990fd44566ef9f7d25d",
+        "paymentId": "6ad73990fd44566ef9f7d25e",
+        "reason": "Order expired or was cancelled before payment completed"
+      },
+      "description": "a refund:requested message",
+      "matchingRules": {
+        "body": {
+          "$.orderId": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.paymentId": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.reason": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          }
+        }
+      },
+      "metadata": {
+        "contentType": "application/json"
+      }
+    },
+    {
+      "contents": {
+        "id": "6ad7398ffd44566ef9f7d25b",
+        "ticket": {
+          "id": "ticket-123"
+        },
+        "version": 1
+      },
+      "description": "an order:cancelled message for payment",
+      "matchingRules": {
+        "body": {
+          "$.id": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.ticket.id": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.version": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          }
+        }
+      },
+      "metadata": {
+        "contentType": "application/json"
+      }
+    },
+    {
+      "contents": {
+        "expiresAt": "2026-10-20T09:51:11.777Z",
+        "id": "6ad7398ffd44566ef9f7d259",
+        "status": "created",
+        "ticket": {
+          "id": "ticket-123",
+          "price": 20
+        },
+        "userId": "user-123",
+        "version": 0
+      },
+      "description": "an order:created message for payment",
+      "matchingRules": {
+        "body": {
+          "$.expiresAt": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.id": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.status": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.ticket.id": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.ticket.price": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.userId": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.version": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          }
+        }
+      },
+      "metadata": {
+        "contentType": "application/json"
+      }
+    }
+  ],
+  "metadata": {
+    "pact-js": {
+      "version": "17.1.4"
+    },
+    "pactRust": {
+      "ffi": "0.5.8",
+      "models": "1.3.16"
+    },
+    "pactSpecification": {
+      "version": "3.0.0"
+    }
+  },
+  "provider": {
+    "name": "orders-service"
+  }
+}

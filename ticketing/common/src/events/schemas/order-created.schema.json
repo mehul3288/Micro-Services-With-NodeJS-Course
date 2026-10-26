@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OrderCreated",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["created", "cancelled", "awaiting:payment", "complete"]
+    },
+    "userId": { "type": "string" },
+    "expiresAt": { "type": "string" },
+    "version": { "type": "integer", "minimum": 0 },
+    "ticket": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "price": { "type": "number", "minimum": 0 }
+      },
+      "required": ["id", "price"],
+      "additionalProperties": true
+    }
+  },
+  "required": ["id", "status", "userId", "expiresAt", "version", "ticket"],
+  "additionalProperties": true
+}

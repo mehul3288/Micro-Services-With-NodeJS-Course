@@ -2,7 +2,7 @@ import "./tracing";
 import mongoose from "mongoose";
 import { app } from "./app";
 import { kafkaWrapper } from "./kafka-wrapper";
-import { registerGracefulShutdown, ensureTopics, EventConsumer, OutboxRelay, createLogger } from "@mehul-mrtickets/common";
+import { registerGracefulShutdown, ensureTopics, EventConsumer, OutboxRelay, createLogger, schemaRegistry } from "@mehul-mrtickets/common";
 import { OrderCancelledListener } from "./events/listeners/order-cancelled-listener";
 import { OrderCreatedListener } from "./events/listeners/order-created-listener";
 import { RefundRequestedListener } from "./events/listeners/refund-requested-listener";
@@ -33,6 +33,7 @@ const start = async () => {
         const brokers = process.env.KAFKA_BROKERS.split(",");
         await kafkaWrapper.connect(process.env.KAFKA_CLIENT_ID, brokers);
         await ensureTopics(kafkaWrapper.kafka);
+        await schemaRegistry.init();
 
         const outboxRelay = new OutboxRelay(kafkaWrapper.producer, {
             pollIntervalMs: 200,

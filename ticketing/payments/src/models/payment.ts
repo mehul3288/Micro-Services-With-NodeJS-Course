@@ -7,7 +7,7 @@ interface PaymentAttrs {
     status?: PaymentStatus;
 }
 
-interface PaymentDoc extends mongoose.Document {
+export interface PaymentDoc extends mongoose.Document {
     id: string;
     orderId: string;
     stripeId: string;

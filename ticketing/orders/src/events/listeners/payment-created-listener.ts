@@ -2,6 +2,7 @@ import { EventMetadata, Listener, OrderStatus, PaymentCreatedEvent, Subjects } f
 import { Order } from "../../models/order";
 import { canTransition } from "../../models/order-transitions";
 import { RefundRequestedPublisher } from "../publishers/refund-requested-publisher";
+import { toRefundRequestedEvent } from "../builders/order-event-builders";
 
 export class PaymentCreatedListener extends Listener<PaymentCreatedEvent> {
     readonly subject: Subjects.PaymentCreated = Subjects.PaymentCreated;
@@ -14,11 +15,14 @@ export class PaymentCreatedListener extends Listener<PaymentCreatedEvent> {
 
         // Late payment race: order expired or was cancelled before payment completed
         if (order.status === OrderStatus.Cancelled) {
-            await new RefundRequestedPublisher().publish({
-                orderId: order.id,
-                paymentId: data.id,
-                reason: "Order expired or was cancelled before payment completed",
-            }, metadata.session);
+            await new RefundRequestedPublisher().publish(
+                toRefundRequestedEvent(
+                    order.id,
+                    data.id,
+                    "Order expired or was cancelled before payment completed"
+                ),
+                metadata.session
+            );
             return;
         }
 

@@ -6,6 +6,7 @@ import { Subjects } from "./subjects";
 import { topicFor } from "./topics";
 import { ProcessedEvent } from "./processed-event";
 import { eventsConsumedCounter } from "../metrics/metrics";
+import { schemaRegistry } from "./schema-registry";
 
 export interface EventConsumerOptions {
     deduplicate?: boolean;
@@ -92,13 +93,17 @@ export class EventConsumer {
                         try {
                             let data: any;
                             try {
-                                data = message.value ? JSON.parse(message.value.toString("utf-8")) : {};
+                                if (message.value) {
+                                    data = await schemaRegistry.decode(topic, eventType, message.value);
+                                } else {
+                                    data = {};
+                                }
                             } catch (err: any) {
-                                console.error(`Invalid JSON payload for ${eventType} on ${topic}:`, err);
+                                console.error(`Schema validation or decode error for ${eventType} on ${topic}:`, err.message);
                                 try {
                                     eventsConsumedCounter.inc({ topic, event_type: eventType, result: "dlq" });
                                 } catch {}
-                                await this.sendToDlq(topic, message, `JSON parse error: ${err.message}`);
+                                await this.sendToDlq(topic, message, `Schema validation error: ${err.message}`);
                                 return;
                             }
 

@@ -6,6 +6,7 @@ import { Ticket } from "../models/ticket";
 import { Order } from "../models/order";
 import { OrderCreatedPublisher } from "../events/publishers/order-created-publisher";
 import { orderRateLimiter } from "../middlewares/order-rate-limiter";
+import { toOrderCreatedEvent } from "../events/builders/order-event-builders";
 
 const router = express.Router();
 const getExpirationWindowSeconds = (): number => {
@@ -54,17 +55,7 @@ router.post(
 
             await order.save({ session });
 
-            await new OrderCreatedPublisher().publish({
-                id: order._id.toHexString(),
-                status: order.status,
-                userId: order.userId,
-                expiresAt: order.expiresAt.toISOString(),
-                version: order.version,
-                ticket: {
-                    id: ticket.id,
-                    price: ticket.price,
-                },
-            }, session);
+            await new OrderCreatedPublisher().publish(toOrderCreatedEvent(order), session);
 
             orderDoc = order;
         });

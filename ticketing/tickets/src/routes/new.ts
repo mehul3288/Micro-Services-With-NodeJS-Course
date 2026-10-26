@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 import { Ticket } from "../models/ticket";
 import { TicketCreatedPublisher } from "../events/publishers/ticket-created-publisher";
 import { ticketCache } from "../services/ticket-cache";
+import { toTicketCreatedEvent } from "../events/builders/ticket-event-builders";
 
 const router = express.Router();
 
@@ -24,13 +25,7 @@ router.post(
             await ticket.save({ session });
 
             await new TicketCreatedPublisher().publish(
-                {
-                    id: ticket.id,
-                    title: ticket.title,
-                    price: ticket.price,
-                    userId: ticket.userId,
-                    version: ticket.version,
-                },
+                toTicketCreatedEvent(ticket),
                 session
             );
 

@@ -2,6 +2,7 @@ import { EventMetadata, Listener, OrderCancelledEvent, Subjects } from "@mehul-m
 import { Ticket } from "../../models/ticket";
 import { TicketUpdatedPublisher } from "../publishers/ticket-updated-publisher";
 import { ticketCache } from "../../services/ticket-cache";
+import { toTicketUpdatedEvent } from "../builders/ticket-event-builders";
 
 export class OrderCancelledListener extends Listener<OrderCancelledEvent> {
     subject: Subjects.OrderCancelled = Subjects.OrderCancelled;
@@ -25,14 +26,7 @@ export class OrderCancelledListener extends Listener<OrderCancelledEvent> {
         await ticket.save({ session: metadata.session });
 
         await new TicketUpdatedPublisher().publish(
-            {
-                id: ticket.id,
-                version: ticket.version,
-                title: ticket.title,
-                price: ticket.price,
-                userId: ticket.userId,
-                orderId: ticket.orderId,
-            },
+            toTicketUpdatedEvent(ticket),
             metadata.session
         );
 

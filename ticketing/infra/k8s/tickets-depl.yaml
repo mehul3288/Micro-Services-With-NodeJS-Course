@@ -39,6 +39,8 @@ spec:
                   fieldPath: metadata.name
             - name: REDIS_HOST
               value: "tickets-redis-srv"
+            - name: SCHEMA_REGISTRY_URL
+              value: "http://schema-registry-srv:8081"
           resources:
             requests:
               cpu: 100m

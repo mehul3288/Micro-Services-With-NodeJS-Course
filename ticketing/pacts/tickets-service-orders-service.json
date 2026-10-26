@@ -1,0 +1,140 @@
+{
+  "consumer": {
+    "name": "tickets-service"
+  },
+  "messages": [
+    {
+      "contents": {
+        "id": "6ad736f4417c26df01df0b3b",
+        "ticket": {
+          "id": "6ad736f4417c26df01df0b3c"
+        },
+        "version": 1
+      },
+      "description": "an order:cancelled message",
+      "matchingRules": {
+        "body": {
+          "$.id": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.ticket.id": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.version": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          }
+        }
+      },
+      "metadata": {
+        "contentType": "application/json"
+      }
+    },
+    {
+      "contents": {
+        "expiresAt": "2026-10-20T09:40:04.003Z",
+        "id": "6ad736f3417c26df01df0b39",
+        "status": "created",
+        "ticket": {
+          "id": "6ad736f3417c26df01df0b38",
+          "price": 20
+        },
+        "userId": "user-123",
+        "version": 0
+      },
+      "description": "an order:created message",
+      "matchingRules": {
+        "body": {
+          "$.expiresAt": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.id": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.status": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.ticket.id": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.ticket.price": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.userId": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          },
+          "$.version": {
+            "combine": "AND",
+            "matchers": [
+              {
+                "match": "type"
+              }
+            ]
+          }
+        }
+      },
+      "metadata": {
+        "contentType": "application/json"
+      }
+    }
+  ],
+  "metadata": {
+    "pact-js": {
+      "version": "17.1.4"
+    },
+    "pactRust": {
+      "ffi": "0.5.8",
+      "models": "1.3.16"
+    },
+    "pactSpecification": {
+      "version": "3.0.0"
+    }
+  },
+  "provider": {
+    "name": "orders-service"
+  }
+}

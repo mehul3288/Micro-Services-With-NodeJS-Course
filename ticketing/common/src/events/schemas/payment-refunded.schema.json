@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PaymentRefunded",
+  "type": "object",
+  "properties": {
+    "paymentId": { "type": "string" },
+    "orderId": { "type": "string" },
+    "stripeRefundId": { "type": "string" }
+  },
+  "required": ["paymentId", "orderId"],
+  "additionalProperties": true
+}

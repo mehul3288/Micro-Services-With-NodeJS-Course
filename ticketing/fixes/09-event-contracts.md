@@ -156,12 +156,12 @@ Record in `results/phase-09-contracts.md`.
 
 ## 6. Checklist
 
-- [ ] Concept lesson written in `fixes/lessons/09-schema-registry-and-contract-testing.md`, taught & discussed in detail, and explicit go-ahead signal received from developer
-- [ ] Schema Registry deployed, `SCHEMA_REGISTRY_URL` everywhere
-- [ ] JSON Schemas for all events + type/schema sync test
-- [ ] Relay/publisher encode, consumer decode + validate → DLQ on failure
-- [ ] Startup registration with BACKWARD compatibility, fail-fast
-- [ ] Event payload builder functions extracted (shared by routes and pact tests)
-- [ ] Pact consumer + provider tests for all contracts in the table
-- [ ] Verification scenarios run, results recorded
-- [ ] `notes/09-event-contracts.md` written
+- [x] Concept lesson written in `fixes/lessons/09-schema-registry-and-contract-testing.md`, taught & discussed in detail, and explicit go-ahead signal received from developer
+- [x] Schema Registry deployed, `SCHEMA_REGISTRY_URL` everywhere
+- [x] JSON Schemas for all events + type/schema sync test
+- [x] Relay/publisher encode, consumer decode + validate → DLQ on failure
+- [x] Startup registration with BACKWARD compatibility, fail-fast
+- [x] Event payload builder functions extracted (shared by routes and pact tests)
+- [x] Pact consumer + provider tests for all contracts in the table
+- [x] Verification scenarios run, results recorded
+- [x] `notes/09-event-contracts.md` written

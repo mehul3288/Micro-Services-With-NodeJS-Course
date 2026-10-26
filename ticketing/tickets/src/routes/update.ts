@@ -11,6 +11,7 @@ import {
 } from "@mehul-mrtickets/common";
 import { TicketUpdatedPublisher } from "../events/publishers/ticket-updated-publisher";
 import { ticketCache } from "../services/ticket-cache";
+import { toTicketUpdatedEvent } from "../events/builders/ticket-event-builders";
 
 const router = express.Router();
 
@@ -45,13 +46,7 @@ router.put(
             await ticket.save({ session });
 
             await new TicketUpdatedPublisher().publish(
-                {
-                    id: ticket.id,
-                    title: ticket.title,
-                    price: ticket.price,
-                    userId: ticket.userId,
-                    version: ticket.version,
-                },
+                toTicketUpdatedEvent(ticket),
                 session
             );
 
